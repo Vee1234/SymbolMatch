@@ -5,6 +5,10 @@
 // Symbols per card that the algorithm supports: q + 1 for prime q.
 export const SUPPORTED_SYMBOLS_PER_CARD = [3, 4, 6, 8, 12];
 
+// Games use at most this many cards (GameRequirements.md). The full deck for 12 symbols
+// per card would have 133, which is far too long a game.
+export const MAX_CARDS = 57;
+
 export function isPrime(n) {
   if (!Number.isInteger(n) || n < 2) return false;
   for (let d = 2; d * d <= n; d++) {

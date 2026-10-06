@@ -1,7 +1,12 @@
-# docs
-*.txt
-docs/
 node_modules/
 .wrangler/
 __pycache__/
-.claude/
+
+# Personal Claude Code settings and local sync state
+.claude/settings.local.json
+.claude/simulator-sync/
+.claude/readme-check/
+
+# Text files, except the algorithm notes in docs/
+*.txt
+!docs/*.txt

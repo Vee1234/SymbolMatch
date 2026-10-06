@@ -90,8 +90,8 @@ button.mode:active { transform: scale(.985); }
 .play {
   height: 100%;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   padding-top: calc(env(safe-area-inset-top) + 10px);
   user-select: none;
@@ -121,6 +121,7 @@ button.mode:active { transform: scale(.985); }
 .pips.last-chance .pip:not(.used) { border-color: var(--bad); animation: pulse 1s infinite alternate; }
 
 .table {
+  flex: 1;
   display: grid;
   grid-template-rows: auto auto auto auto;
   justify-items: center;
@@ -160,8 +161,9 @@ button.mode:active { transform: scale(.985); }
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom) + 18px);
-  transform: translate(-50%, 20px);
+  top: calc(env(safe-area-inset-top) + 64px);
+  transform: translate(-50%, -12px);
+  width: max-content;
   max-width: calc(100vw - 32px);
   padding: 10px 16px;
   border-radius: 999px;
@@ -176,6 +178,110 @@ button.mode:active { transform: scale(.985); }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.bad { background: var(--bad); color: #fff; }
+
+/* ---------- play with friends ---------- */
+.mode-friends { border-color: var(--gold); }
+.back {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 700;
+}
+.brand h2 { margin: 0 0 6px; font-size: 32px; font-weight: 800; letter-spacing: -.01em; }
+.text-input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1px solid var(--felt-line);
+  border-radius: 14px;
+  background: var(--felt-raised);
+  color: var(--ink);
+  font: 600 18px var(--font);
+}
+.text-input::placeholder { color: var(--ink-soft); opacity: .6; }
+.text-input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.join-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.join-row .secondary { padding: 0 22px; }
+.code-input { text-transform: uppercase; letter-spacing: .25em; font-variant-numeric: tabular-nums; }
+
+.lobby-head { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.room-code { margin: 0 0 6px; font-size: 52px; font-weight: 800; letter-spacing: .12em; color: var(--gold); font-variant-numeric: tabular-nums; }
+.lobby-head .secondary { padding: 0 20px; }
+.player-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.player-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--felt-raised);
+  font-size: 18px;
+  font-weight: 700;
+}
+.player-list li.offline { opacity: .5; }
+.player-list .tags { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+.seg-2 { grid-template-columns: repeat(2, 1fr); }
+.seg-2 button { font-size: 16px; }
+.seg button:disabled { cursor: default; }
+.seg button:disabled:not([aria-checked="true"]) { opacity: .45; }
+.primary:disabled { opacity: .55; cursor: default; }
+
+#roomPlay { --card-size: min(86vw, calc((100svh - 196px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 2), 420px); }
+.opponents {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 34rem;
+}
+.opponents li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--felt-raised);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.opponents li.dim { opacity: .5; }
+.table.locked-out .card.mine { opacity: .45; filter: grayscale(.6); }
+.card-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 18%;
+  text-align: center;
+  color: var(--card-ink);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.standings { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 6px; }
+.standings li {
+  display: grid;
+  grid-template-columns: 2ch 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: var(--felt-raised);
+  font-size: 18px;
+}
+.standings li.you { box-shadow: inset 0 0 0 2px var(--gold); }
+.standings .place { font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+.standings .who { font-weight: 700; }
+.standings .detail { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 
 /* ---------- results ---------- */
 .results { max-width: 34rem; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
