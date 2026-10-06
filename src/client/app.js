@@ -1,7 +1,7 @@
 import { DeckGenerator, LEVELS, levelName, MAX_CARDS, deckSizeFor } from "./shared/generator.js";
-import { SoloGame, MODES, WRONG_TAPS_ALLOWED_PER_GAME } from "./shared/game.js";
+import { SoloGame, MODES, WRONG_TAPS_ALLOWED_PER_GAME, CLOCK_DURATION_MS, COUNTDOWN_MS } from "./shared/game.js";
 import { pickEmoji } from "./shared/symbols.js";
-import { $, show, store, toast, formatTime, segmented, renderPips, buzz, slideCard } from "./ui.js";
+import { $, show, store, toast, formatTime, segmented, renderPips, buzz, slideCard, runCountdown, stopCountdown } from "./ui.js";
 import { renderCard, replayAnimation, onSymbolTap, clearLayouts } from "./cards.js";
 import { initFriends, createRoomAtLevel, joinWithCode, inRoom, leaveRoom } from "./friends.js";
 
@@ -92,22 +92,36 @@ let emoji = [];
 let mode = MODES.clock;
 let frame = 0;
 
+// A solo game opens with the same 3, 2, 1, Go! as a friends game; the cards are dealt
+// and the clock starts when it ends.
 function startGame(chosenMode) {
   mode = chosenMode;
+  cancelAnimationFrame(frame);
+  game = null;
   const q = symbolsPerCard - 1;
   const symbolIds = Array.from({ length: deckSizeFor(q) }, (_, id) => id);
   const deck = new DeckGenerator(q, symbolIds).generate({ maxCards: MAX_CARDS });
   emoji = pickEmoji(symbolIds.length);
   clearLayouts();
-  game = new SoloGame(deck, { mode, now: performance.now() });
 
   $("scoreLabel").textContent = mode === MODES.clock ? "Matches" : "Cards";
-  renderCard($("topCard"), game.topCard, emoji, "deal");
-  renderCard($("yourCard"), game.yourCard, emoji, "deal");
-  renderHud(performance.now());
+  $("time").textContent = mode === MODES.clock ? (CLOCK_DURATION_MS / 1000).toFixed(1) : formatTime(0);
+  $("score").textContent = 0;
+  renderPips($("mistakes"), 0, WRONG_TAPS_ALLOWED_PER_GAME);
+  $("topCard").replaceChildren();
+  $("yourCard").replaceChildren();
   show("play");
-  cancelAnimationFrame(frame);
-  frame = requestAnimationFrame(loop);
+
+  runCountdown(COUNTDOWN_MS, {
+    title: `${MODE_INFO[mode].name} · ${levelName(symbolsPerCard)}`,
+    onDone: () => {
+      game = new SoloGame(deck, { mode, now: performance.now() });
+      renderCard($("topCard"), game.topCard, emoji, "deal");
+      renderCard($("yourCard"), game.yourCard, emoji, "deal");
+      renderHud(performance.now());
+      frame = requestAnimationFrame(loop);
+    },
+  });
 }
 
 function loop(now) {
@@ -209,6 +223,7 @@ function finish() {
 
 function goHome() {
   cancelAnimationFrame(frame);
+  stopCountdown();
   game = null;
   picking = null;
   $("cardPick").hidden = true;

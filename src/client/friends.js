@@ -6,7 +6,7 @@ import { LEVELS, levelName } from "./shared/generator.js";
 import { WRONG_TAPS_ALLOWED_PER_GAME } from "./shared/game.js";
 import { MULTIPLAYER_MODES, MIN_PLAYERS, readiness } from "./shared/multiplayer.js";
 import { verdictFor } from "./shared/verdicts.js";
-import { $, show, store, toast, segmented, renderPips, formatTime, buzz, slideCard } from "./ui.js";
+import { $, show, store, toast, segmented, renderPips, formatTime, buzz, slideCard, runCountdown, stopCountdown, countdownRunning } from "./ui.js";
 import { renderCard, replayAnimation, onSymbolTap, clearLayouts } from "./cards.js";
 
 const MODE_INFO = {
@@ -42,7 +42,6 @@ let shownYourCard = "";
 let leaveArmedUntil = 0;
 let levelForNewRoom = null; // symbols per card chosen on the home screen, set once the room exists
 let codeToJoin = ""; // set when the name screen was opened by an invite link or a typed code
-let countdown = null; // the opening 3-2-1 that's running, if any: { game, timer }
 let slideOnNext = null; // "won" or "played" after your correct tap, until the cards update
 
 const nameOf = id => state?.players.find(p => p.id === id)?.name ?? "Someone";
@@ -367,56 +366,20 @@ function renderPlay() {
     return li;
   }));
 
-  if (game.startsInMs > 0 && !countdown) startCountdown(game);
+  // The opening countdown runs for however long the room says is left, so a phone that
+  // reconnects partway through joins in at the right number.
+  if (game.startsInMs > 0 && !countdownRunning()) {
+    runCountdown(game.startsInMs, {
+      title: `${MODE_INFO[game.mode].name} · ${levelName(state.settings.symbolsPerCard)}`,
+      players: game.players.map(p => {
+        const li = document.createElement("li");
+        li.append(circle(p.id, initialOf(p.id)), p.id === playerId ? `${nameOf(p.id)} (you)` : nameOf(p.id));
+        return li;
+      }),
+      onDone: () => { for (const card of [$("roomCentre"), $("roomYours")]) replayAnimation(card, "deal"); },
+    });
+  }
   show("roomPlay");
-}
-
-// The opening 3, 2, 1, Go! on top of the table. It runs for however long the room says is
-// left, so a phone that reconnects partway through joins in at the right number.
-function startCountdown(game) {
-  const overlay = $("countdown");
-  const endsAt = performance.now() + game.startsInMs;
-  $("countdownMode").textContent = `${MODE_INFO[game.mode].name} · ${levelName(state.settings.symbolsPerCard)}`;
-  $("countdownPlayers").replaceChildren(...game.players.map(p => {
-    const li = document.createElement("li");
-    li.append(circle(p.id, initialOf(p.id)), p.id === playerId ? `${nameOf(p.id)} (you)` : nameOf(p.id));
-    return li;
-  }));
-  overlay.classList.remove("fading");
-  overlay.hidden = false;
-
-  let shown = "";
-  const tick = () => {
-    const left = endsAt - performance.now();
-    if (left <= 0) {
-      overlay.classList.add("fading");
-      countdown.timer = setTimeout(() => {
-        overlay.hidden = true;
-        countdown = null;
-        for (const card of [$("roomCentre"), $("roomYours")]) replayAnimation(card, "deal");
-      }, 350);
-      return;
-    }
-    const label = left > 3000 ? "3" : left > 2000 ? "2" : left > 1000 ? "1" : "Go!";
-    if (label !== shown) {
-      shown = label;
-      const number = document.createElement("span");
-      number.className = "count";
-      number.textContent = label;
-      $("countdownCircle").replaceChildren(number);
-      $("countdownCircle").classList.toggle("is-go", label === "Go!");
-      $("countdownHeading").textContent = label === "Go!" ? "Symbolic!" : "Get ready!";
-    }
-    countdown.timer = setTimeout(tick, 50);
-  };
-  countdown = { timer: 0 };
-  tick();
-}
-
-function stopCountdown() {
-  if (countdown) clearTimeout(countdown.timer);
-  countdown = null;
-  $("countdown").hidden = true;
 }
 
 function renderResults() {

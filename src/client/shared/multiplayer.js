@@ -17,14 +17,13 @@
 // milliseconds from whatever clock the caller passes as `now` (the room uses Date.now()).
 
 import { shuffle } from "./generator.js";
-import { sharedSymbol, WRONG_TAPS_ALLOWED_PER_CARD, WRONG_TAPS_ALLOWED_PER_GAME } from "./game.js";
+import { sharedSymbol, WRONG_TAPS_ALLOWED_PER_CARD, WRONG_TAPS_ALLOWED_PER_GAME, COUNTDOWN_MS } from "./game.js";
+
+export { COUNTDOWN_MS };
 
 export const MULTIPLAYER_MODES = { tower: "tower", well: "well" };
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;
-// Every game opens with a 3, 2, 1, Go! countdown on everyone's phone (a second each).
-// Taps don't count until it's over, and match times start from the end of it.
-export const COUNTDOWN_MS = 4000;
 
 // Before a game starts, every connected player has to say they're ready; the host can't
 // start until they all have. players: the room's list, each with `connected` and `ready`.
