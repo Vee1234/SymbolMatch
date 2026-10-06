@@ -1,0 +1,24 @@
+Card Generation Algorithm
+Prerequisites
+q — width of grid, must be prime
+Total cards = q²+q+1
+Symbols per card = q+1
+S — pool of unique symbols of size q²+q+1
+Grid — empty q×q matrix; each entry is a card, stored as a list of symbols
+Vanishing points — empty 1×(q+1) matrix; each entry is a card, stored as a list of symbols
+All indexing is 0-based.
+Algorithm
+1. Shuffle S randomly, then select the last symbol and remove it from S. [This symbol has 1×(q+1) scope — shared across all cards in the vanishing-point matrix only]
+2. Add this symbol to every card in the vanishing-point matrix.
+3. For each card group g from 0 to q (q+1 groups):
+    4. Set direction to [1,g] if g < q, else to [0,1].
+    5. For each row i from 0 to q-1 (q rows):
+        6. Select the symbol now at the end of S (r) and remove it from S. [r has row scope — shared across the q cards in this row and vanishing point g]
+        7. Set position to the start of row i: (0,i) if g < q, else (i,0).
+        8. For each card from 0 to q-1 (q cards):
+            9. Add r to the grid card at position.
+            10. Move position by direction: new position = [(p_x + d_x) mod q, (p_y + d_y) mod q].
+        11. Add r to entry g of the vanishing-point matrix.
+12. Combine the grid and vanishing-point cards into one deck of q²+q+1 cards.
+13. Shuffle the symbols on each card, and shuffle the order of the cards in the deck.
+14. Output the deck.

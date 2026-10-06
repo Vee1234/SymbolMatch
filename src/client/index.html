@@ -9,6 +9,8 @@
   <script type="module" src="app.js"></script>
 </head>
 <body>
+  <!-- ========== Solo ========== -->
+
   <main id="home" class="screen home">
     <header class="brand">
       <h1>Dobble</h1>
@@ -32,11 +34,10 @@
         <span class="mode-desc">Get through the whole deck as fast as you can.</span>
         <span class="mode-best" data-best="race"></span>
       </button>
-      <div class="mode mode-soon" aria-disabled="true">
+      <button type="button" class="mode mode-friends" id="openFriends">
         <span class="mode-name">Play with friends</span>
         <span class="mode-desc">Share a link and play on your own phones, in the same room or apart.</span>
-        <span class="mode-best">Coming next</span>
-      </div>
+      </button>
     </section>
 
     <p class="rules">One wrong tap on a card is allowed. A second wrong tap locks you out of that card. Six wrong taps in a game and you forfeit.</p>
@@ -56,8 +57,6 @@
       <div class="card mine" id="yourCard"></div>
       <p class="pile-label">Your card</p>
     </section>
-
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </main>
 
   <main id="results" class="screen results" hidden>
@@ -71,5 +70,87 @@
       <button type="button" class="secondary" id="toHome">Home</button>
     </div>
   </main>
+
+  <!-- ========== Play with friends ========== -->
+
+  <main id="friends" class="screen home" hidden>
+    <button type="button" class="back" id="friendsBack">← Back</button>
+    <header class="brand">
+      <h2>Play with friends</h2>
+      <p>Everyone plays on their own phone. Send the invite link to bring people in, whether they're next to you or far away.</p>
+    </header>
+
+    <section class="panel">
+      <label class="label" for="playerName">Your name</label>
+      <input class="text-input" id="playerName" maxlength="16" autocomplete="nickname" placeholder="e.g. Sam">
+    </section>
+
+    <button type="button" class="primary" id="createRoom">Create a game</button>
+
+    <form class="panel" id="joinForm">
+      <label class="label" for="roomCode">Or join with a room code</label>
+      <div class="join-row">
+        <input class="text-input code-input" id="roomCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE">
+        <button type="submit" class="secondary">Join</button>
+      </div>
+    </form>
+  </main>
+
+  <main id="lobby" class="screen home" hidden>
+    <header class="lobby-head">
+      <p class="label">Room code</p>
+      <p class="room-code" id="lobbyCode"></p>
+      <button type="button" class="secondary" id="shareRoom">Share invite link</button>
+    </header>
+
+    <section class="panel">
+      <h2 class="label">Players</h2>
+      <ul class="player-list" id="lobbyPlayers"></ul>
+    </section>
+
+    <section class="panel">
+      <h2 class="label">Game</h2>
+      <div class="seg seg-2" id="roomModePicker" role="radiogroup"></div>
+      <p class="hint" id="roomModeHint"></p>
+      <h2 class="label">Symbols per card</h2>
+      <div class="seg" id="roomSizePicker" role="radiogroup"></div>
+    </section>
+
+    <p class="hint" id="lobbyWaiting"></p>
+    <div class="actions">
+      <button type="button" class="primary" id="startRoom">Start game</button>
+      <button type="button" class="secondary" id="leaveRoom">Leave room</button>
+    </div>
+  </main>
+
+  <main id="roomPlay" class="screen play" hidden>
+    <header class="hud">
+      <button type="button" class="quit" id="roomQuit" aria-label="Leave game">✕</button>
+      <div class="stat"><span class="label" id="roomStatLabel">Centre pile</span><span class="value" id="roomStat">0</span></div>
+      <div class="stat"><span class="label" id="roomScoreLabel">Won</span><span class="value" id="roomScore">0</span></div>
+      <div class="stat"><span class="label">Mistakes</span><span class="pips" id="roomMistakes"></span></div>
+    </header>
+    <ul class="opponents" id="opponents" aria-label="Other players"></ul>
+
+    <section class="table" id="roomTable">
+      <p class="pile-label">Centre card</p>
+      <div class="card" id="roomCentre"></div>
+      <div class="card mine" id="roomYours"></div>
+      <p class="pile-label" id="roomYoursLabel">Your card</p>
+    </section>
+  </main>
+
+  <main id="roomResults" class="screen results" hidden>
+    <p class="label" id="roomResultMode"></p>
+    <h2 id="roomResultTitle"></h2>
+    <ol class="standings" id="standings"></ol>
+    <p class="hint" id="roomResultWaiting"></p>
+    <div class="actions">
+      <button type="button" class="primary" id="roomAgain">Play again</button>
+      <button type="button" class="secondary" id="roomLeave">Leave room</button>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
