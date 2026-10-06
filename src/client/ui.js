@@ -2,15 +2,15 @@
 
 export const $ = id => document.getElementById(id);
 
-// The page behind the screens (seen when iPhone scrolling bounces) and the browser bars
-// match the screen showing: light blue on the home screen, felt green everywhere else.
-const PAGE_COLOURS = { home: "#ddf0fb" };
+// The page behind the screens (seen when iPhone scrolling bounces) matches the screen
+// showing, and the browser bars match its top edge: the home screen's white bar, or felt green.
+const BAR_COLOURS = { home: "#ffffff" };
 const FELT = "#16312c";
 
 export function show(screenId) {
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.id !== screenId;
   document.documentElement.dataset.screen = screenId;
-  document.querySelector('meta[name="theme-color"]').content = PAGE_COLOURS[screenId] ?? FELT;
+  document.querySelector('meta[name="theme-color"]').content = BAR_COLOURS[screenId] ?? FELT;
   window.scrollTo(0, 0);
 }
 

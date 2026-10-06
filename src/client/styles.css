@@ -79,20 +79,20 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   --pink: #f9c9d9;
   --pink-pale: #fde6ee;
   --pink-deep: #f4a7c0;
-  --navy: #1e2b4a;
-  --navy-soft: #3e4c6b;
+  --text: #000;
+  --text-soft: #333;
   --display: Fredoka, var(--font);
   color-scheme: light;
   position: relative;
-  overflow: hidden;
-  padding-top: calc(env(safe-area-inset-top) + 40px);
+  padding-top: 0;
   background: var(--sky);
-  color: var(--navy);
+  color: var(--text);
   font-family: Nunito, var(--font);
 }
-.landing button:focus-visible, .landing input:focus-visible { outline: 3px solid var(--navy); outline-offset: 3px; }
+.landing button:focus-visible, .landing input:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
+.bubbles { position: absolute; inset: 0; overflow: hidden; }
 .bubbles span { position: absolute; border-radius: 50%; }
 .bubbles span:nth-child(1) { width: 220px; height: 220px; top: 110px; left: -120px; background: rgba(249, 201, 217, .7); }
 .bubbles span:nth-child(2) { width: 160px; height: 160px; top: 150px; right: -70px; background: rgba(255, 255, 255, .55); }
@@ -113,22 +113,37 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   align-items: center;
   gap: 18px;
 }
-.tutorial {
-  width: 100%;
-  min-height: 56px;
+/* A white bar across the top: the logo on the left, the tutorial on the right. */
+.topbar {
+  position: relative;
+  margin: 0 -16px 28px;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+}
+/* Pulling down past the top on an iPhone reveals what's above the page: keep it white like
+   the bar. (The page underneath stays light blue, which shows when pulling up at the bottom.) */
+.topbar::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 100vh; background: #fff; }
+.logo { flex: none; width: 44px; height: 44px; }
+.tutorial {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
   border: 0;
   border-radius: 999px;
   background: var(--pink);
-  font-size: clamp(15px, 4.6vw, 18px);
+  font-size: clamp(13px, 4vw, 15px);
   font-weight: 800;
   white-space: nowrap;
 }
 .wordmark { margin: 6px 0 0; font: 700 clamp(56px, 19vw, 76px)/1 var(--display); letter-spacing: .01em; }
-.tagline { max-width: 19rem; margin: -8px 0 4px; color: var(--navy-soft); font-size: 17px; font-weight: 700; line-height: 1.35; text-align: center; text-wrap: balance; }
+.tagline { max-width: 19rem; margin: -8px 0 4px; color: var(--text-soft); font-size: 17px; font-weight: 700; line-height: 1.35; text-align: center; text-wrap: balance; }
 
 .join { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .join h2 { margin: 0; display: flex; align-items: center; gap: 8px; font: 600 20px var(--display); }
@@ -141,7 +156,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   border: 2px solid var(--pink-deep);
   border-radius: 999px;
   background: #fff;
-  color: var(--navy);
+  color: var(--text);
   text-align: center;
   font: 800 22px Nunito, var(--font);
   letter-spacing: .3em;
@@ -187,7 +202,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 .toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 72cqw; padding: 3px; border-radius: 999px; background: var(--pink-pale); }
 .toggle button { min-height: 36px; padding: 0 2px; border: 0; border-radius: 999px; background: transparent; font-size: max(11px, 3.8cqw); font-weight: 800; white-space: nowrap; }
 .toggle button[aria-checked="true"] { background: var(--pink-deep); }
-.mode-desc { margin: 0; width: 68cqw; min-height: 2.6em; color: var(--navy-soft); font-size: max(12px, 3.8cqw); line-height: 1.3; text-align: center; }
+.mode-desc { margin: 0; width: 68cqw; min-height: 2.6em; color: var(--text-soft); font-size: max(12px, 3.8cqw); line-height: 1.3; text-align: center; }
 .pick-title { margin: 0; font: 600 max(15px, 5.3cqw) var(--display); }
 .levels { display: flex; align-items: center; gap: 2.4cqw; }
 .level {
@@ -212,7 +227,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 .pill-go { padding: 0 22px; background: var(--blue-deep); color: #fff; font-weight: 800; }
 
 /* Buttons grow a little when pressed, and spring back. */
-.landing button { color: var(--navy); transition: scale .18s cubic-bezier(.34, 1.56, .64, 1); }
+.landing button { color: var(--text); transition: scale .18s cubic-bezier(.34, 1.56, .64, 1); }
 .landing .go, .landing .pill-go { color: #fff; }
 .landing button:active { scale: 1.1; transition-duration: .08s; }
 @media (hover: hover) { .landing button:hover { scale: 1.04; } }
