@@ -13,6 +13,26 @@ At the end of the game there should be summary statistics (how many cards each p
 
 All players should be able to see which players are in the game when starting a game
 
-Get ready screen with 3 2 1 countdown- the numbers appear in the circles and the numbers get slightly bigger before reaching max and changing.
+Get ready screen with 3 2 1 countdown, with the two dots orbiting the circle, the numbers appear in the circles and the numbers get slightly bigger before reaching max and changing.
+
+I'm ready button is blue
 
 All players have to mark themselves as ready by clicking on a Ready button- the start button is 'greyed out' if not
+
+The countdown should just run, no need to replay countdown or have a to the game button.
+
+Also let's have the 3 2 1 in pink circles and the Go in the same blue as the background (keep the white circle that acts as a buffer ebtween the number and the bakcground)
+
+change Spot it! to Symbolic!
+
+Remove the opaque shadow from 'your card'
+
+white bar at the top should have the name of the page eg. Results, Room, 
+
+The countdown page should run on the top of the game page as when the countdown finishes the graphic should disappear and the cards appear.
+
+Clicking the symbols hould take you back to the landing page.
+
+Add shadows to all of the wide buttons
+
+CHnage 'rOOM'   heading to lobby
