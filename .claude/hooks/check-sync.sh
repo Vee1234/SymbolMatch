@@ -52,7 +52,7 @@ check_readme() {
   reminded_file="$root/.claude/readme-check/last-reminded"
   reminded=$(cat "$reminded_file" 2>/dev/null)
   [ "$reminded" != "$head" ] || return
-  changed=$(git -C "$root" diff --name-only "$marker" HEAD -- src tests wrangler.jsonc package.json '*.py' docs 2>/dev/null | head -20)
+  changed=$(git -C "$root" diff --name-only "$marker" HEAD -- src tests wrangler.jsonc package.json '*.py' docs Dockerfile .github 2>/dev/null | head -20)
   [ -n "$changed" ] || return
   mkdir -p "$(dirname "$reminded_file")" && echo "$head" > "$reminded_file"
   messages+=("README.md may be out of date: commits since its last sync ($marker) changed files it describes. Use the update-readme skill to bring it up to date, after finishing whatever the user is asking for (or now, if they're asking about the README). Changed files:

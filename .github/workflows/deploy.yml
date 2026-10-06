@@ -1,0 +1,71 @@
+# Tests and deploys the app on every push to master, which includes merging a pull request
+# or feature branch into master. Everything runs inside the deploy image built from the
+# Dockerfile, so CI uses exactly the Node version and dependencies pinned there.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   an API token made with the "Edit Cloudflare Workers" template
+#   CLOUDFLARE_ACCOUNT_ID  the Cloudflare account to deploy to
+
+name: Test and deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: # also allows a manual run from the Actions tab
+
+# Deploys run one at a time, in order; a new push waits rather than cancelling one mid-deploy.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write # to publish the deploy image to GitHub Container Registry
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Name the image
+        # Registry names must be lowercase; the repository name may not be.
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}-deploy" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build the deploy image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true # keep it on the runner so the next steps can run it
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test
+        run: docker run --rm "$IMAGE:$GITHUB_SHA" npm test
+
+      - name: Deploy to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets to deploy."
+            exit 1
+          fi
+          docker run --rm -e CLOUDFLARE_API_TOKEN -e CLOUDFLARE_ACCOUNT_ID "$IMAGE:$GITHUB_SHA" npx wrangler deploy
+
+      # Published only after a successful deploy, so :latest is always the image that's live.
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the deploy image
+        run: docker push --all-tags "$IMAGE"

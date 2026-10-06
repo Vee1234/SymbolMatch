@@ -18,7 +18,7 @@ The last line of `README.md` is a marker:
 Run:
 
 ```sh
-git diff --stat <sha> -- src tests wrangler.jsonc package.json '*.py' docs
+git diff --stat <sha> -- src tests wrangler.jsonc package.json '*.py' docs Dockerfile .github
 git status --short
 ```
 
@@ -30,7 +30,7 @@ The diff only shows *where* to look. Before editing a section, read the current 
 
 | README section | Check against |
 |---|---|
-| Quick start, Testing, Deploying | `package.json` scripts, `wrangler.jsonc`, the test files in `tests/` |
+| Quick start, Testing, Deploying | `package.json` scripts, `wrangler.jsonc`, the test files in `tests/`, `Dockerfile`, `.github/workflows/deploy.yml` |
 | How the game plays | `shared/game.js` (wrong-tap limits, clock length), `shared/multiplayer.js` (modes, player limits, stuck-game handling), `MAX_CARDS` and `SUPPORTED_SYMBOLS_PER_CARD` in `shared/generator.js` |
 | Architecture (text and mermaid diagram) | `wrangler.jsonc` (assets, `run_worker_first`, Durable Object bindings), `src/server/index.js`, `src/server/room.js` (hibernation, storage, alarm, ping), which modules import `shared/` |
 | How the deck is built | `shared/generator.js`, `shared/checker.js`, the emoji count in `shared/symbols.js` |

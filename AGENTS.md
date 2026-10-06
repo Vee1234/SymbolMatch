@@ -20,7 +20,7 @@ npm run deploy                                   # publishes to Cloudflare; ask 
 - **Emoji must be everyday objects with no faces, and no two may look alike** (`docs/GameRequirements.md`). Check new ones for look-alikes, such as broccoli next to a tree.
 - **Multiplayer is server-authoritative.** Phones send taps; `src/server/room.js` decides. Never send a player another player's cards.
 - **Room state must survive hibernation.** In `room.js`, save to storage before relying on in-memory state.
-- **Deploying publishes a public URL.** Run `npm run deploy` only when the user asks.
+- **Pushing to `master` deploys to production.** `.github/workflows/deploy.yml` tests and deploys every push to `master`, including merges. Work on a feature branch, and only push or merge to `master` when the user asks. The same goes for running `npm run deploy` by hand: it publishes a public URL.
 - **The Python files are the reference implementation.** If the deck algorithm changes, keep `DeckGenerator.py` and `src/client/shared/generator.js` in step.
 
 ## Keeping the README current
@@ -38,7 +38,7 @@ npm run deploy                                   # publishes to Cloudflare; ask 
 3. **Periodically:** at the start of a session, run the check below. If relevant files changed since the marker, update the README before starting other work, or tell the user it's stale if they'd rather not wait.
 
 ```sh
-git diff --stat "$(grep -o 'readme-synced-commit: [0-9a-f]*' README.md | cut -d' ' -f2)" -- src tests wrangler.jsonc package.json '*.py' docs
+git diff --stat "$(grep -o 'readme-synced-commit: [0-9a-f]*' README.md | cut -d' ' -f2)" -- src tests wrangler.jsonc package.json '*.py' docs Dockerfile .github
 ```
 
 **How to update it.** Claude Code agents: use the `update-readme` skill (`.claude/skills/update-readme/SKILL.md`). Other agents follow the same steps:
