@@ -1,0 +1,686 @@
+<title>Dobble Plane Tracer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #EBEFF3;
+  --surface: #F8FAFB;
+  --surface-2: #E1E6EC;
+  --ink: #17202B;
+  --ink-2: #4A5667;
+  --muted: #8994A3;
+  --line: #CDD4DD;
+  --grid: rgba(60, 90, 130, .08);
+  --good: #2E8B57;
+  --bad: #CF3E34;
+  --zero: #D5DBE2;
+  --chip-ink: #FFFFFF;
+  --focus: #2A5BD7;
+  --c0: #2F66D0; --c1: #D2530F; --c2: #23875A; --c3: #B02F7C;
+  --c4: #8A6A00; --c5: #0C8595; --c6: #6746C0; --c7: #8C4A2B;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #11161D; --surface: #18202A; --surface-2: #222C38;
+    --ink: #E6EBF1; --ink-2: #A9B4C2; --muted: #6E7A8A; --line: #2E3947;
+    --grid: rgba(150, 180, 220, .06);
+    --good: #4CC285; --bad: #FF6B5E; --zero: #2A3441; --chip-ink: #0E131A; --focus: #7FA6FF;
+    --c0: #79A6FF; --c1: #FF9A5C; --c2: #5CD69A; --c3: #F07CC0;
+    --c4: #E3C24F; --c5: #4FD3E0; --c6: #B19BFF; --c7: #E0A07E;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #11161D; --surface: #18202A; --surface-2: #222C38;
+  --ink: #E6EBF1; --ink-2: #A9B4C2; --muted: #6E7A8A; --line: #2E3947;
+  --grid: rgba(150, 180, 220, .06);
+  --good: #4CC285; --bad: #FF6B5E; --zero: #2A3441; --chip-ink: #0E131A; --focus: #7FA6FF;
+  --c0: #79A6FF; --c1: #FF9A5C; --c2: #5CD69A; --c3: #F07CC0;
+  --c4: #E3C24F; --c5: #4FD3E0; --c6: #B19BFF; --c7: #E0A07E;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 48px; display: flex; flex-direction: column; gap: 20px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -.01em; }
+h1 { font-size: 30px; font-weight: 700; }
+h2 { font-size: 17px; font-weight: 600; }
+.lede { color: var(--ink-2); max-width: 70ch; margin: 6px 0 0; }
+.mono, code { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+
+/* controls */
+.controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.ctl { display: flex; flex-direction: column; gap: 5px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { border: 0; border-right: 1px solid var(--line); background: transparent; color: var(--ink-2); padding: 6px 11px; font: 500 13px var(--body); cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 7px; padding: 6px 11px; font: 500 13px var(--body); cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 74px; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+input[type="number"] { width: 90px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font: 13px var(--mono); }
+input[type="range"] { accent-color: var(--ink); }
+.scrub { flex: 1 1 260px; }
+.scrub input { width: 100%; }
+.counter { font: 12px var(--mono); color: var(--ink-2); }
+
+/* layout */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+@media (max-width: 960px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+/* stage */
+.stage-scroll { overflow-x: auto; }
+.stage { display: grid; grid-template-columns: 26px auto; gap: 6px; width: max-content; min-width: 100%; padding: 12px; border-radius: 8px;
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 16px 16px; }
+.yaxis { display: grid; gap: 6px; }
+.yaxis span, .xaxis span { font: 11px var(--mono); color: var(--muted); display: flex; align-items: center; justify-content: center; }
+.xaxis { display: grid; gap: 6px; grid-column: 2; }
+.plane { display: grid; gap: 6px; }
+.tile { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 17px 5px 5px; min-height: var(--tile-h); width: var(--tile-w);
+  display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; cursor: pointer; }
+.tile .name { position: absolute; top: 3px; left: 6px; font: 10px var(--mono); color: var(--muted); }
+.tile .badge { position: absolute; top: 3px; right: 5px; font: 600 10px var(--mono); padding: 0 4px; border-radius: 4px; }
+.tile.on-line { border: 2px dashed var(--cls); padding: 16px 4px 4px; }
+.tile.cursor { box-shadow: 0 0 0 3px var(--ink); }
+.tile.origin::after { content: "O"; position: absolute; bottom: -7px; right: -7px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink); color: var(--bg); font: 600 9px/16px var(--mono); text-align: center; }
+.tile.conflict { background: color-mix(in srgb, var(--bad) 12%, var(--surface)); border-color: var(--bad); }
+.tile.sel { outline: 2px solid var(--focus); outline-offset: 2px; }
+.tile.flash { animation: flash .5s ease-out; }
+@keyframes flash { from { background: color-mix(in srgb, var(--cls) 30%, var(--surface)); } }
+@media (prefers-reduced-motion: reduce) { .tile.flash { animation: none; } }
+.chip { display: inline-flex; align-items: center; justify-content: center; min-width: var(--chip); height: var(--chip); padding: 0 3px; border-radius: 999px; background: var(--c); color: var(--chip-ink); font: 500 var(--chip-font) var(--mono); line-height: 1; }
+.chip.inf { background: var(--ink); color: var(--bg); }
+.chip.new { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--c); }
+.infrow-wrap { display: flex; flex-direction: column; gap: 6px; }
+.infrow { display: flex; gap: 6px; }
+.inf-tile .name { color: var(--cls); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; gap: 5px; align-items: center; }
+.legend i { width: 11px; height: 11px; border-radius: 50%; background: var(--c); display: inline-block; }
+
+/* steps */
+.event { border-left: 3px solid var(--ink); padding: 6px 10px; background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.event .msg { font-weight: 500; }
+.event.warn { border-left-color: var(--bad); }
+.event .warnmsg { color: var(--bad); font-size: 13px; margin-top: 4px; }
+.vars { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font: 12px var(--mono); }
+.vars dt { color: var(--muted); }
+.vars dd { margin: 0; }
+ol.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; max-height: 470px; overflow-y: auto; font-size: 13px; }
+ol.steps li { display: grid; grid-template-columns: 26px 1fr; gap: 6px; padding: 4px 6px; border-radius: 5px; color: var(--ink-2); }
+ol.steps li b { font: 500 12px var(--mono); color: var(--muted); text-align: right; }
+ol.steps li.active { background: var(--ink); color: var(--bg); }
+ol.steps li.active b { color: var(--bg); }
+ol.steps li.patched { box-shadow: inset 3px 0 0 var(--good); }
+ol.steps li.buggy { box-shadow: inset 3px 0 0 var(--bad); }
+ol.steps mark { background: transparent; color: inherit; font-weight: 600; text-decoration: underline; text-decoration-color: var(--bad); text-decoration-thickness: 2px; }
+ol.steps li.patched mark { text-decoration-color: var(--good); }
+
+/* verify */
+.verify { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 860px) { .verify { grid-template-columns: minmax(0, 1fr); } }
+.verdict { display: inline-flex; align-items: center; gap: 6px; font: 600 13px var(--body); padding: 3px 10px; border-radius: 999px; }
+.verdict.ok { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+.verdict.no { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.verdict.pending { background: var(--surface-2); color: var(--ink-2); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.stat { display: flex; flex-direction: column; gap: 2px; }
+.stat .v { font: 600 20px var(--mono); font-variant-numeric: tabular-nums; }
+.stat .v.good { color: var(--good); } .stat .v.bad { color: var(--bad); }
+.matrix-wrap { position: relative; }
+canvas#matrix { display: block; width: 100%; max-width: 440px; aspect-ratio: 1; border-radius: 4px; cursor: crosshair; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font: 12px var(--mono); padding: 5px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+.mkey { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
+.mkey span { display: inline-flex; gap: 5px; align-items: center; }
+.mkey i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; background: var(--k); }
+.compare { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.compare div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 5px; }
+.detail { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.detail .chips { display: flex; flex-wrap: wrap; gap: 4px; --chip: 22px; --chip-font: 11px; }
+.hint { color: var(--muted); font-size: 12px; }
+
+/* where-are-we tracker */
+.stage { outline: 2px solid var(--cur, transparent); outline-offset: -2px; transition: outline-color .2s; }
+.tracker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 640px) { .tracker { grid-template-columns: minmax(0, 1fr); } }
+.level { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; background: var(--surface); transition: background .2s, border-color .2s; }
+.level .top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.level .val { font: 500 13px var(--mono); }
+.level .sub { font-size: 12px; color: var(--ink-2); min-height: 18px; }
+.level .new { font: 700 10px var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--ink); color: var(--bg); }
+.level.changed { border-color: var(--ink); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ink); }
+.level.changed .val { animation: pop .45s ease-out; }
+@keyframes pop { from { transform: scale(1.25); } }
+@media (prefers-reduced-motion: reduce) { .level.changed .val { animation: none; } }
+.pips { display: flex; gap: 4px; flex-wrap: wrap; }
+.pip { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--pc, var(--muted)); background: transparent; }
+.pip.done { background: var(--pc, var(--muted)); }
+.pip.now { background: var(--pc, var(--ink)); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--pc, var(--ink)); }
+.strip { position: relative; height: 26px; border-radius: 6px; overflow: hidden; background: var(--surface-2); cursor: pointer; }
+.strip .seg-g { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--c) 30%, var(--surface)); border-right: 2px solid var(--surface); display: flex; align-items: center; padding-left: 5px; font: 600 10px var(--mono); color: var(--ink-2); overflow: hidden; white-space: nowrap; }
+.strip .tick { position: absolute; top: 55%; bottom: 0; width: 1px; background: var(--c); opacity: .7; }
+.strip .head { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--ink); }
+.strip-key { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--muted); }
+.event .change { display: inline-block; font: 700 10px var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--ink); color: var(--bg); margin-bottom: 4px; }
+ol.steps li { margin-left: calc(var(--d, 0) * 14px); border-left: 2px solid transparent; }
+ol.steps li[data-d="1"] { border-left-color: var(--line); }
+ol.steps li[data-d="2"] { border-left-color: var(--muted); }
+ol.steps li[data-d="3"] { border-left-color: var(--ink-2); }
+ol.steps li .tag { font: 600 10px var(--body); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 0 6px; margin-left: 6px; white-space: nowrap; }
+ol.steps li.active .tag { color: var(--bg); border-color: var(--bg); }
+select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font: 13px var(--body); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Dobble Plane Tracer</h1>
+    <p class="lede">Runs <code>CardGenerationAlgorithm.txt</code> one step at a time. Grid cards are the affine points; the bottom row holds the q+1 vanishing points. Each chip is a symbol, coloured by the direction that placed it. A valid card gets exactly one chip of each colour, plus the black line-at-infinity chip on vanishing-point cards.</p>
+  </header>
+
+  <section class="controls" aria-label="Simulation controls">
+    <div class="ctl">
+      <span class="label">q (prime)</span>
+      <div class="seg" id="qSeg"></div>
+    </div>
+    <div class="ctl">
+      <label class="label" for="seed">Shuffle seed</label>
+      <div class="btns"><input id="seed" type="number" min="1" value="7"><button class="btn" id="reseed" type="button">New</button></div>
+    </div>
+    <div class="ctl">
+      <span class="label">Playback</span>
+      <div class="btns">
+        <button class="btn" id="bStart" type="button" title="Back to start">⏮</button>
+        <button class="btn" id="bBack" type="button" title="Back one step (←)">◀</button>
+        <button class="btn primary" id="bPlay" type="button" title="Play / pause (space)">Play</button>
+        <button class="btn" id="bFwd" type="button" title="Forward one step (→)">▶</button>
+        <button class="btn" id="bCard" type="button">Next card</button>
+        <button class="btn" id="bLine" type="button">Next row</button>
+        <button class="btn" id="bGroup" type="button">Next group</button>
+        <button class="btn" id="bEnd" type="button" title="Jump to end">⏭</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label class="label" for="speed">Speed</label>
+      <input id="speed" type="range" min="1" max="60" value="12">
+    </div>
+    <div class="ctl">
+      <label class="label" for="pauseAt">Pause on</label>
+      <select id="pauseAt">
+        <option value="0">Nothing</option>
+        <option value="1">New card</option>
+        <option value="2">New row</option>
+        <option value="3">New card group</option>
+      </select>
+    </div>
+    <div class="ctl scrub">
+      <label class="label" for="scrub">Timeline <span class="counter" id="counter"></span></label>
+      <input id="scrub" type="range" min="0" value="0">
+    </div>
+  </section>
+
+  <div class="main">
+    <section class="panel" aria-label="Plane">
+      <div class="panel-head">
+        <h2>Card grid <span class="mono" id="gridTitle" style="color:var(--muted);font-size:13px"></span></h2>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="tracker" id="tracker">
+        <div class="level" id="lvGroup"></div>
+        <div class="level" id="lvRow"></div>
+        <div class="level" id="lvCard"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="strip" id="strip" title="Click to jump"></div>
+        <div class="strip-key"><span>Timeline: one block per card group, a tick for each new row</span><span id="stripPos"></span></div>
+      </div>
+      <div class="stage-scroll">
+        <div class="stage" id="stage"></div>
+      </div>
+      <p class="hint">Dashed outline: cards on the line being drawn. Black ring: <code>position</code>. <b>O</b>: the start of the current row. Red card: it holds two symbols from the same direction, which means two lines of that direction meet there. Click a card to see what it shares with every other card.</p>
+    </section>
+
+    <aside class="panel" aria-label="Algorithm state">
+      <div class="event" id="event"></div>
+      <dl class="vars" id="vars"></dl>
+      <ol class="steps" id="steps"></ol>
+    </aside>
+  </div>
+
+  <section class="panel" aria-label="Verification">
+    <div class="panel-head">
+      <h2>Pair check</h2>
+      <span class="verdict pending" id="verdict"></span>
+    </div>
+    <div class="verify">
+      <div class="matrix-wrap">
+        <canvas id="matrix"></canvas>
+        <div class="tip" id="tip" hidden></div>
+        <div class="mkey" style="margin-top:8px">
+          <span><i style="--k:var(--good)"></i>shares 1</span>
+          <span><i style="--k:var(--bad)"></i>shares 2+</span>
+          <span><i style="--k:var(--zero)"></i>shares 0</span>
+          <span class="hint">Rows and columns: grid cards (x, y), then ∞0…∞q</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="stats" id="stats"></div>
+        <div class="compare" id="compare"></div>
+        <div class="detail" id="detail"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const QS = [2, 3, 5, 7];
+  const $ = id => document.getElementById(id);
+  const state = { q: 3, seed: 7, events: [], symClass: [], idx: 0, playing: false, sel: null };
+  try { const s = JSON.parse(localStorage.getItem('dobble-tracer') || '{}'); if (QS.includes(s.q)) state.q = s.q; } catch (e) {}
+
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  const cardName = (q, id) => id < q * q ? `(${id % q},${Math.floor(id / q)})` : `∞${id - q * q}`;
+  const dirName = d => `[${d[0]},${d[1]}]`;
+
+  /* ---------- the algorithm, transcribed literally, emitting one event per step ---------- */
+  // kind tags the events the render code cares about, so it never tests step numbers:
+  // 'rowStart' (position set to a row's first card), 'cardMoved', 'output'
+  function build(q, seed) {
+    const rand = mulberry32(seed), N = q * q + q + 1;
+    const S = Array.from({ length: N }, (_, i) => i);
+    const symClass = [], ev = [];
+    const cards = Array.from({ length: N }, () => []);   // build-time copy, for warnings
+    const id = p => p[0] + p[1] * q;
+    const st = { g: null, i: null, k: null, dir: null, pos: null, start: null, r: null, cls: null, line: [], phase: 'setup' };
+    // change: { rank: 1 card | 2 row | 3 card group, text }
+    const push = (step, msg, { op = null, warn = null, change = null, kind = null } = {}) => ev.push({
+      step, msg, op, warn, change, kind, line: st.line.slice(), cls: st.cls,
+      pos: { phase: st.phase, g: st.g, row: st.i, card: st.k },
+      vars: { g: st.g, i: st.i, k: st.k, dir: st.dir && st.dir.slice(), pos: st.pos && st.pos.slice(), start: st.start && st.start.slice(), r: st.r, left: S.length }
+    });
+    const add = (sym, ids) => ids.forEach(c => cards[c].push(sym));
+    const hasClass = (c, cls) => cards[c].some(s => symClass[s] === cls);
+
+    for (let i = S.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [S[i], S[j]] = [S[j], S[i]]; }
+    const s0 = S.pop(); symClass[s0] = 'inf';
+    push(1, `Shuffled S and took the last symbol, ${s0}, for the line at infinity`);
+    const infIds = Array.from({ length: q + 1 }, (_, k) => q * q + k);
+    add(s0, infIds);
+    push(2, `Added ${s0} to all ${q + 1} vanishing-point cards`, { op: { sym: s0, cards: infIds } });
+
+    for (let g = 0; g <= q; g++) {
+      st.g = g; st.i = null; st.k = null; st.r = null; st.start = null; st.line = []; st.phase = 'rows';
+      push(3, `Card group g = ${g} (${g + 1} of ${q + 1})`);
+      st.dir = g < q ? [1, g] : [0, 1]; st.cls = g;
+      push(4, `direction = ${dirName(st.dir)}`,
+        { change: { rank: 3, text: `New card group: group ${g + 1} of ${q + 1}, direction ${dirName(st.dir)}` } });
+      for (let i = 0; i < q; i++) {
+        st.i = i; st.k = null; st.r = null; st.start = null; st.line = [];
+        push(5, `Row i = ${i} (${i + 1} of ${q})`);
+        if (S.length) { st.r = S.pop(); symClass[st.r] = st.cls; }
+        push(6, st.r == null ? 'S is empty, so there is no symbol to take' : `r = ${st.r}, taken from the end of S`,
+          { warn: st.r == null ? 'S ran out of symbols before every row got one.' : null });
+        st.start = g < q ? [0, i] : [i, 0]; st.pos = st.start.slice();
+        push(7, `position = start of row ${i}: ${cardName(q, id(st.pos))}`, { kind: 'rowStart',
+          change: i > 0 ? { rank: 2, text: `New row: row ${i + 1} of ${q} starts at ${cardName(q, id(st.pos))}` } : null });
+        for (let k = 0; k < q; k++) {
+          st.k = k;
+          push(8, `Card k = ${k} (${k + 1} of ${q})`);
+          const c = id(st.pos), clash = hasClass(c, st.cls);
+          if (st.r != null) add(st.r, [c]);
+          st.line.push(c);
+          push(9, `Added ${st.r} to card ${cardName(q, c)}`, { op: st.r != null ? { sym: st.r, cards: [c] } : null,
+            warn: clash ? `${cardName(q, c)} already had a symbol from direction ${dirName(st.dir)}, so two lines of this direction meet here.` : null });
+          const from = st.pos.slice();
+          st.pos = [(st.pos[0] + st.dir[0]) % q, (st.pos[1] + st.dir[1]) % q];
+          const last = k === q - 1;
+          push(10, `Moved ${cardName(q, id(from))} → ${cardName(q, id(st.pos))}${last ? ' (back at the row start; the card loop ends)' : ''}`,
+            { kind: 'cardMoved', change: last ? null : { rank: 1, text: `New card: ${cardName(q, id(from))} → ${cardName(q, id(st.pos))}` } });
+        }
+        st.k = null;
+        if (st.r != null) add(st.r, [q * q + g]);
+        push(11, `Added ${st.r} to vanishing point ∞${g}`, { op: st.r != null ? { sym: st.r, cards: [q * q + g] } : null });
+      }
+    }
+    st.phase = 'done'; st.g = st.i = st.k = st.cls = st.dir = st.pos = st.start = st.r = null; st.line = [];
+    push(12, `Combined ${q * q} grid cards and ${q + 1} vanishing-point cards into one deck of ${N}`);
+    push(13, 'Shuffled the symbols on each card and the order of the deck (the grid keeps card positions so it stays readable)');
+    push(14, `Output the deck. ${S.length} symbols left in S.`, { kind: 'output' });
+    return { events: ev, symClass };
+  }
+
+  /* ---------- derived state ---------- */
+  function cardsAt(q, events, idx) {
+    const N = q * q + q + 1, cards = Array.from({ length: N }, () => []);
+    for (let i = 0; i <= idx; i++) { const op = events[i].op; if (op) op.cards.forEach(c => cards[c].push(op.sym)); }
+    return cards;
+  }
+  function pairStats(cards) {
+    const N = cards.length, sets = cards.map(c => new Set(c));
+    const M = Array.from({ length: N }, () => new Int8Array(N));
+    let one = 0, zero = 0, many = 0;
+    for (let a = 0; a < N; a++) for (let b = a + 1; b < N; b++) {
+      let n = 0; for (const s of sets[a]) if (sets[b].has(s)) n++;
+      M[a][b] = M[b][a] = n;
+      if (n === 1) one++; else if (n === 0) zero++; else many++;
+    }
+    return { M, one, zero, many, total: N * (N - 1) / 2 };
+  }
+
+  /* ---------- static UI ---------- */
+  const STEPS = [
+    'Shuffle S, then take its last symbol (vanishing-point scope).',
+    'Add it to every card in the vanishing-point matrix.',
+    'For each card group g from 0 to q:',
+    'direction ← [1,g] if g < q, else [0,1].',
+    'For each row i from 0 to q−1:',
+    'Take the symbol at the end of S as r.',
+    'position ← start of row i: (0,i) if g < q, else (i,0).',
+    'For each card from 0 to q−1:',
+    'Add r to the grid card at position.',
+    'position ← (position + direction) mod q.',
+    'Add r to entry g of the vanishing-point matrix.',
+    'Combine grid and vanishing-point cards into one deck.',
+    'Shuffle the symbols on each card and the order of the deck.',
+    'Output the deck.'
+  ];
+
+  // Loop nesting: 1 = card group loop body, 2 = row loop body, 3 = card loop body
+  const DEPTH = { 4: 1, 5: 1, 6: 2, 7: 2, 8: 2, 9: 3, 10: 3, 11: 2 };
+  const TAGS = { 3: '↻ group loop', 4: 'new group', 5: '↻ row loop', 7: 'new row', 8: '↻ card loop', 10: 'new card' };
+  function renderSteps() {
+    $('steps').innerHTML = STEPS.map((t, i) => {
+      const n = i + 1, d = DEPTH[n] || 0;
+      return `<li data-step="${n}" data-d="${d}" style="--d:${d}"><b>${n}</b><span>${t}${TAGS[n] ? `<span class="tag">${TAGS[n]}</span>` : ''}</span></li>`;
+    }).join('');
+  }
+
+  const RANK_LABEL = { 1: 'New card', 2: 'New row', 3: 'New card group' };
+  function renderTracker(e) {
+    const q = state.q, p = e.pos, rank = e.change ? e.change.rank : 0;
+    const active = p.phase === 'rows';
+    const lineDone = e.line.length === q;
+    const pips = (n, cur, colorOf, doneAll) => Array.from({ length: n }, (_, i) =>
+      `<span class="pip ${doneAll || i < cur ? 'done' : i === cur ? 'now' : ''}" style="--pc:${colorOf(i)}"></span>`).join('');
+    const setLevel = (el, name, r, val, sub, pipHtml) => {
+      el.classList.toggle('changed', rank === r);
+      el.innerHTML = `<div class="top"><span class="label">${name}</span>${rank === r ? `<span class="new">${RANK_LABEL[r]}</span>` : ''}</div>
+        <span class="val">${val}</span><div class="pips">${pipHtml}</div><span class="sub">${sub}</span>`;
+    };
+    const setup = p.phase === 'setup', done = p.phase === 'done';
+    const dirSet = active && e.cls === p.g;
+    setLevel($('lvGroup'), 'Card group', 3,
+      setup ? 'not started' : done ? `all ${q + 1} done` : `g = ${p.g} (${p.g + 1} of ${q + 1})`,
+      setup ? 'Setting up the line at infinity' : done ? 'Deck finished' : dirSet ? `direction ${dirName(e.vars.dir)}` : 'direction not set yet',
+      pips(q + 1, setup ? -1 : p.g, i => clsVar(i), done));
+    const cls = clsVar(e.cls);
+    setLevel($('lvRow'), 'Row', 2,
+      active && p.row != null ? `i = ${p.row} (${p.row + 1} of ${q})` : active ? 'not started' : '–',
+      active && p.row != null ? `symbol r = ${e.vars.r ?? '–'}${e.vars.start ? `, starts at (${e.vars.start.join(',')})` : ''}` : '',
+      pips(q, active && p.row != null ? p.row : -1, () => cls, false));
+    setLevel($('lvCard'), 'Card in row', 1,
+      active && p.card != null ? `k = ${p.card} (${p.card + 1} of ${q})` : active && lineDone ? `all ${q} done` : '–',
+      active && e.vars.pos && p.row != null ? `position (${e.vars.pos.join(',')})` : '',
+      pips(q, active && p.card != null ? p.card : -1, () => cls, active && p.card == null && lineDone));
+    $('stage').style.setProperty('--cur', active ? cls : 'transparent');
+  }
+
+  let stripModel = null;
+  function buildStrip() {
+    const ev = state.events, n = ev.length, groups = [], ticks = [];
+    let start = null, g = null;
+    ev.forEach((e, i) => {
+      if (e.change && e.change.rank === 3) { if (start !== null) groups.push({ g, start, end: i }); start = i; g = e.pos.g; }
+      if (e.kind === 'rowStart') ticks.push({ i, cls: e.cls });
+    });
+    groups.push({ g, start, end: n - 1 });
+    stripModel = { n };
+    const pct = i => (i / (n - 1) * 100).toFixed(3) + '%';
+    $('strip').innerHTML = groups.map(s =>
+      `<div class="seg-g" style="left:${pct(s.start)};width:calc(${pct(s.end)} - ${pct(s.start)});--c:${clsVar(s.g)}">${s.g === state.q ? '[0,1]' : `[1,${s.g}]`}</div>`).join('')
+      + ticks.map(t => `<div class="tick" style="left:${pct(t.i)};--c:${clsVar(t.cls)}"></div>`).join('')
+      + `<div class="head" id="stripHead"></div>`;
+  }
+  function renderStrip(e) {
+    if (!stripModel) return;
+    $('stripHead').style.left = (state.idx / (stripModel.n - 1) * 100) + '%';
+    $('stripPos').textContent = e.change ? e.change.text : '';
+  }
+  $('strip').addEventListener('click', ev => {
+    const r = $('strip').getBoundingClientRect();
+    state.playing = false; go(Math.round((ev.clientX - r.left) / r.width * (state.events.length - 1)));
+  });
+  function renderSegs() {
+    $('qSeg').innerHTML = QS.map(q => `<button type="button" data-q="${q}" aria-pressed="${q === state.q}">${q}</button>`).join('');
+  }
+  const clsVar = cls => cls === 'inf' || cls == null ? 'var(--ink)' : `var(--c${cls})`;
+  const clsDir = (q, k) => k === q ? '[0,1]' : `[1,${k}]`;
+
+  function buildStage() {
+    const q = state.q;
+    const tw = q <= 3 ? 92 : q === 5 ? 78 : 70;
+    const chip = q <= 3 ? 20 : q === 5 ? 17 : 15;
+    const stage = $('stage');
+    stage.style.setProperty('--tile-w', tw + 'px');
+    stage.style.setProperty('--tile-h', Math.round(tw * 0.8) + 'px');
+    stage.style.setProperty('--chip', chip + 'px');
+    stage.style.setProperty('--chip-font', (chip <= 15 ? 9 : 10.5) + 'px');
+    const cols = `repeat(${q}, var(--tile-w))`;
+    let html = `<div class="yaxis" style="grid-template-rows:repeat(${q},auto)">`;
+    for (let y = q - 1; y >= 0; y--) html += `<span>y${y}</span>`;
+    html += `</div><div class="plane" style="grid-template-columns:${cols}">`;
+    for (let y = q - 1; y >= 0; y--) for (let x = 0; x < q; x++) html += `<div class="tile" data-card="${x + y * q}"><span class="name">(${x},${y})</span></div>`;
+    html += `</div><div class="xaxis" style="grid-template-columns:${cols}">`;
+    for (let x = 0; x < q; x++) html += `<span>x${x}</span>`;
+    html += `</div><div></div><div class="infrow-wrap"><span class="label">Vanishing points · 1×(q+1) matrix</span><div class="infrow">`;
+    for (let k = 0; k <= q; k++) html += `<div class="tile inf-tile" data-card="${q * q + k}" style="--cls:${clsVar(k)}"><span class="name">∞${k} ${clsDir(q, k)}</span></div>`;
+    html += `</div></div>`;
+    stage.innerHTML = html;
+    $('gridTitle').textContent = `q = ${q} · ${q * q + q + 1} cards · ${q + 1} symbols each`;
+    $('legend').innerHTML = Array.from({ length: q + 1 }, (_, k) => `<span><i style="--c:${clsVar(k)}"></i>${clsDir(q, k)}</span>`).join('') + `<span><i style="--c:var(--ink)"></i>line at ∞</span>`;
+  }
+
+  /* ---------- per-frame render ---------- */
+  let lastIdx = -1;
+  function render() {
+    const { q, events, symClass, idx } = state, e = events[idx];
+    const cards = cardsAt(q, events, idx);
+    const stats = pairStats(cards);
+    const vp = e.vars, lineSet = new Set(e.line), cls = e.cls;
+    const newOp = e.op && idx !== lastIdx ? e.op : null;
+
+    document.querySelectorAll('#stage .tile').forEach(t => {
+      const c = +t.dataset.card, isGrid = c < q * q;
+      const syms = cards[c];
+      const counts = {}; syms.forEach(s => counts[symClass[s]] = (counts[symClass[s]] || 0) + 1);
+      const conflict = Object.values(counts).some(n => n > 1);
+      if (isGrid) t.style.setProperty('--cls', clsVar(cls));
+      t.classList.toggle('on-line', isGrid && lineSet.has(c));
+      t.classList.toggle('cursor', isGrid && !!vp.pos && e.pos.phase === 'rows' && c === vp.pos[0] + vp.pos[1] * q);
+      t.classList.toggle('origin', isGrid && !!vp.start && c === vp.start[0] + vp.start[1] * q);
+      t.classList.toggle('conflict', conflict);
+      t.classList.toggle('sel', c === state.sel);
+      const name = t.querySelector('.name').outerHTML;
+      let badge = '';
+      if (state.sel != null && c !== state.sel) {
+        const n = stats.M[state.sel][c];
+        badge = `<span class="badge" style="background:${n === 1 ? 'var(--good)' : n === 0 ? 'var(--zero)' : 'var(--bad)'};color:${n === 0 ? 'var(--ink-2)' : 'var(--chip-ink)'}">${n}</span>`;
+      }
+      t.innerHTML = name + badge + syms.map(s => {
+        const k = symClass[s], isNew = newOp && newOp.sym === s && newOp.cards.includes(c);
+        return `<span class="chip${k === 'inf' ? ' inf' : ''}${isNew ? ' new' : ''}" style="--c:${clsVar(k)}">${s}</span>`;
+      }).join('');
+      if (newOp && newOp.cards.includes(c)) { t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); t.style.setProperty('--cls', clsVar(symClass[newOp.sym])); }
+    });
+
+    $('event').className = 'event' + (e.warn ? ' warn' : '');
+    $('event').innerHTML = `${e.change ? `<span class="change">${RANK_LABEL[e.change.rank]}</span>` : ''}<div class="label">Step ${e.step}</div><div class="msg">${e.change ? e.change.text : e.msg}</div>${e.warn ? `<div class="warnmsg">${e.warn}</div>` : ''}`;
+    renderTracker(e); renderStrip(e);
+    const pos = p => p ? `(${p[0]},${p[1]})` : '–';
+    $('vars').innerHTML = [
+      ['g (card group)', vp.g ?? '–'], ['i (row)', vp.i ?? '–'], ['k (card)', vp.k ?? '–'],
+      ['direction', vp.dir ? dirName(vp.dir) : '–'], ['position', pos(vp.pos)], ['row start', pos(vp.start)],
+      ['r', vp.r ?? '–'], ['symbols left in S', vp.left]
+    ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    document.querySelectorAll('#steps li').forEach(li => li.classList.toggle('active', +li.dataset.step === e.step));
+    const act = document.querySelector('#steps li.active');
+    if (act) { const ol = $('steps'); const top = act.offsetTop - ol.offsetTop; if (top < ol.scrollTop || top > ol.scrollTop + ol.clientHeight - 30) ol.scrollTop = top - 120; }
+
+    $('scrub').max = events.length - 1; $('scrub').value = idx;
+    $('counter').textContent = `${idx + 1} / ${events.length}`;
+    $('bPlay').textContent = state.playing ? 'Pause' : 'Play';
+
+    const done = idx === events.length - 1;
+    const sizes = cards.map(c => c.length), mn = Math.min(...sizes), mx = Math.max(...sizes);
+    const v = $('verdict');
+    if (!done) { v.className = 'verdict pending'; v.textContent = 'In progress'; }
+    else if (stats.one === stats.total && mn === q + 1 && mx === q + 1) { v.className = 'verdict ok'; v.textContent = 'Valid deck: every pair shares exactly one symbol'; }
+    else { v.className = 'verdict no'; v.textContent = `Invalid deck: ${stats.total - stats.one} of ${stats.total} pairs fail`; }
+    $('stats').innerHTML = [
+      ['Pairs sharing 1', stats.one, 'good'], ['Pairs sharing 2+', stats.many, stats.many ? 'bad' : ''],
+      ['Pairs sharing 0', stats.zero, done && stats.zero ? 'bad' : ''], ['Symbols per card', mn === mx ? mn : `${mn}–${mx}`, done ? (mn === mx && mn === q + 1 ? 'good' : 'bad') : '']
+    ].map(([l, n, c]) => `<div class="stat"><span class="label">${l}</span><span class="v ${c}">${n}</span></div>`).join('');
+
+    drawMatrix(stats.M, cards.length);
+    renderDetail(cards, stats.M);
+    lastIdx = idx;
+  }
+
+  function renderCompare() {
+    const rows = QS.map(q => {
+      const b = build(q, state.seed), c = cardsAt(q, b.events, b.events.length - 1), s = pairStats(c);
+      const bad = s.total - s.one;
+      return `<div><span>q = ${q} (${q * q + q + 1} cards)</span><span class="mono" style="color:${bad ? 'var(--bad)' : 'var(--good)'}">${bad ? `${bad} failing pairs` : 'all pairs pass'}</span></div>`;
+    });
+    $('compare').innerHTML = `<span class="label">Final result for each q</span>` + rows.join('');
+  }
+
+  function renderDetail(cards, M) {
+    const d = $('detail');
+    if (state.sel == null) { d.innerHTML = `<span class="label">Selected card</span><span class="hint">Click a card in the grid or a row of the matrix.</span>`; return; }
+    const q = state.q, c = state.sel, row = M[c];
+    let one = 0, bad = [];
+    for (let j = 0; j < cards.length; j++) if (j !== c) { if (row[j] === 1) one++; else bad.push(`${cardName(q, j)}: ${row[j]}`); }
+    d.innerHTML = `<span class="label">Selected card ${cardName(q, c)}</span>
+      <div class="chips">${cards[c].map(s => { const k = state.symClass[s]; return `<span class="chip${k === 'inf' ? ' inf' : ''}" style="--c:${clsVar(k)}">${s}</span>`; }).join('') || '<span class="hint">No symbols yet</span>'}</div>
+      <span>Shares exactly one symbol with <b class="mono">${one}</b> of ${cards.length - 1} cards.</span>
+      ${bad.length ? `<span class="hint mono" style="color:var(--ink-2)">Other: ${bad.slice(0, 18).join(' · ')}${bad.length > 18 ? ` · +${bad.length - 18} more` : ''}</span>` : ''}
+      <button class="btn" id="clearSel" type="button" style="align-self:flex-start">Clear selection</button>`;
+    $('clearSel').onclick = () => { state.sel = null; render(); };
+  }
+
+  /* ---------- matrix ---------- */
+  const canvas = $('matrix'), ctx = canvas.getContext('2d');
+  let mInfo = null;
+  function drawMatrix(M, N) {
+    const css = getComputedStyle(document.documentElement);
+    const col = n => css.getPropertyValue(n).trim();
+    const w = canvas.clientWidth || 400, dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr; canvas.height = w * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cell = w / N, good = col('--good'), bad = col('--bad'), zero = col('--zero'), ink = col('--ink');
+    ctx.clearRect(0, 0, w, w);
+    const q = state.q, gap = cell > 6 ? 1 : 0;
+    for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+      const n = a === b ? -1 : M[a][b];
+      ctx.fillStyle = n < 0 ? ink : n === 0 ? zero : n === 1 ? good : bad;
+      ctx.globalAlpha = n < 0 ? .25 : n > 1 ? Math.min(1, .55 + n * .1) : 1;
+      ctx.fillRect(b * cell, a * cell, cell - gap, cell - gap);
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.5;
+    const split = q * q * cell - gap / 2;
+    ctx.beginPath(); ctx.moveTo(split, 0); ctx.lineTo(split, w); ctx.moveTo(0, split); ctx.lineTo(w, split); ctx.stroke();
+    if (state.sel != null) { ctx.strokeStyle = col('--focus'); ctx.lineWidth = 2; ctx.strokeRect(1, state.sel * cell, w - 2, cell); ctx.strokeRect(state.sel * cell, 1, cell, w - 2); }
+    mInfo = { M, N, cell };
+  }
+  function cellAt(ev) {
+    if (!mInfo) return null;
+    const r = canvas.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+    const b = Math.floor(x / mInfo.cell), a = Math.floor(y / mInfo.cell);
+    return a >= 0 && b >= 0 && a < mInfo.N && b < mInfo.N ? { a, b, x, y } : null;
+  }
+  canvas.addEventListener('mousemove', ev => {
+    const h = cellAt(ev), tip = $('tip');
+    if (!h || h.a === h.b) { tip.hidden = true; return; }
+    const cards = cardsAt(state.q, state.events, state.idx), sa = new Set(cards[h.a]);
+    const shared = cards[h.b].filter(s => sa.has(s));
+    tip.textContent = `${cardName(state.q, h.a)} × ${cardName(state.q, h.b)}: ${shared.length} shared${shared.length ? ` {${shared.join(', ')}}` : ''}`;
+    tip.style.left = h.x + 'px'; tip.style.top = h.y + 'px'; tip.hidden = false;
+  });
+  canvas.addEventListener('mouseleave', () => $('tip').hidden = true);
+  canvas.addEventListener('click', ev => { const h = cellAt(ev); if (h) { state.sel = h.a; render(); } });
+
+  /* ---------- playback ---------- */
+  function go(i) { state.idx = Math.max(0, Math.min(state.events.length - 1, i)); render(); }
+  function jumpTo(pred) { for (let i = state.idx + 1; i < state.events.length; i++) if (pred(state.events[i])) return go(i); go(state.events.length - 1); }
+  let acc = 0, last = 0;
+  function tick(t) {
+    if (!state.playing) return;
+    acc += (t - last) / 1000 * +$('speed').value; last = t;
+    if (acc >= 1) {
+      const n = Math.floor(acc); acc -= n;
+      if (state.idx >= state.events.length - 1) { state.playing = false; render(); return; }
+      const pauseRank = +$('pauseAt').value;
+      let target = Math.min(state.events.length - 1, state.idx + n);
+      if (pauseRank) for (let i = state.idx + 1; i <= target; i++) {
+        const c = state.events[i].change;
+        if (c && c.rank >= pauseRank) { state.playing = false; go(i); return; }
+      }
+      go(target);
+    }
+    requestAnimationFrame(tick);
+  }
+  function setPlaying(p) {
+    state.playing = p;
+    if (p) { if (state.idx >= state.events.length - 1) state.idx = 0; acc = 0; last = performance.now(); requestAnimationFrame(tick); }
+    render();
+  }
+
+  function rebuild(toEnd) {
+    const b = build(state.q, state.seed);
+    state.events = b.events; state.symClass = b.symClass;
+    state.idx = toEnd ? b.events.length - 1 : 0; lastIdx = -1;
+    if (state.sel != null && state.sel >= state.q * state.q + state.q + 1) state.sel = null;
+    try { localStorage.setItem('dobble-tracer', JSON.stringify({ q: state.q })); } catch (e) {}
+    renderSegs(); renderSteps(); buildStrip(); renderCompare(); render();
+  }
+
+  $('qSeg').addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; state.q = +b.dataset.q; state.sel = null; state.playing = false; buildStage(); rebuild(false); });
+  $('seed').addEventListener('change', () => { state.seed = Math.max(1, Math.floor(+$('seed').value) || 1); rebuild(state.idx === state.events.length - 1); });
+  $('reseed').onclick = () => { state.seed = 1 + Math.floor(Math.random() * 99999); $('seed').value = state.seed; rebuild(state.idx === state.events.length - 1); };
+  $('bStart').onclick = () => { state.playing = false; go(0); };
+  $('bBack').onclick = () => { state.playing = false; go(state.idx - 1); };
+  $('bFwd').onclick = () => { state.playing = false; go(state.idx + 1); };
+  $('bEnd').onclick = () => { state.playing = false; go(state.events.length - 1); };
+  $('bPlay').onclick = () => setPlaying(!state.playing);
+  const nextChange = rank => { state.playing = false; jumpTo(e => (e.change && e.change.rank >= rank) || e.kind === 'output'); };
+  $('bCard').onclick = () => nextChange(1);
+  $('bLine').onclick = () => nextChange(2);
+  $('bGroup').onclick = () => nextChange(3);
+  $('scrub').addEventListener('input', () => { state.playing = false; go(+$('scrub').value); });
+  $('stage').addEventListener('click', ev => { const t = ev.target.closest('.tile'); if (!t) return; const c = +t.dataset.card; state.sel = state.sel === c ? null : c; render(); });
+  document.addEventListener('keydown', ev => {
+    if (ev.target.matches('input')) return;
+    if (ev.key === ' ') { ev.preventDefault(); setPlaying(!state.playing); }
+    else if (ev.key === 'ArrowRight') { state.playing = false; go(state.idx + 1); }
+    else if (ev.key === 'ArrowLeft') { state.playing = false; go(state.idx - 1); }
+  });
+  window.addEventListener('resize', () => render());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => render());
+  new MutationObserver(() => render()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  buildStage();
+  rebuild(true);   // open on the finished deck so the result is visible straight away
+})();
+</script>

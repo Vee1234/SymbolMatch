@@ -1,0 +1,7 @@
+# docs
+*.txt
+docs/
+node_modules/
+.wrangler/
+__pycache__/
+.claude/

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#16312c">
+  <title>Dobble</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main id="home" class="screen home">
+    <header class="brand">
+      <h1>Dobble</h1>
+      <p>Every two cards share exactly one symbol. Spot it first.</p>
+    </header>
+
+    <section class="panel" aria-labelledby="sizeLabel">
+      <h2 class="label" id="sizeLabel">Symbols per card</h2>
+      <div class="seg" id="sizePicker" role="radiogroup" aria-labelledby="sizeLabel"></div>
+      <p class="hint" id="sizeHint"></p>
+    </section>
+
+    <section class="modes" aria-label="Game modes">
+      <button type="button" class="mode" data-mode="clock">
+        <span class="mode-name">Beat the clock</span>
+        <span class="mode-desc">As many matches as you can in 60 seconds.</span>
+        <span class="mode-best" data-best="clock"></span>
+      </button>
+      <button type="button" class="mode" data-mode="race">
+        <span class="mode-name">Race the deck</span>
+        <span class="mode-desc">Get through the whole deck as fast as you can.</span>
+        <span class="mode-best" data-best="race"></span>
+      </button>
+      <div class="mode mode-soon" aria-disabled="true">
+        <span class="mode-name">Play with friends</span>
+        <span class="mode-desc">Share a link and play on your own phones, in the same room or apart.</span>
+        <span class="mode-best">Coming next</span>
+      </div>
+    </section>
+
+    <p class="rules">One wrong tap on a card is allowed. A second wrong tap locks you out of that card. Six wrong taps in a game and you forfeit.</p>
+  </main>
+
+  <main id="play" class="screen play" hidden>
+    <header class="hud">
+      <button type="button" class="quit" id="quit" aria-label="Quit game">✕</button>
+      <div class="stat"><span class="label">Time</span><span class="value" id="time">0.0</span></div>
+      <div class="stat"><span class="label" id="scoreLabel">Matches</span><span class="value" id="score">0</span></div>
+      <div class="stat"><span class="label">Mistakes</span><span class="pips" id="mistakes"></span></div>
+    </header>
+
+    <section class="table" id="table">
+      <p class="pile-label">Centre card</p>
+      <div class="card" id="topCard"></div>
+      <div class="card mine" id="yourCard"></div>
+      <p class="pile-label">Your card</p>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <main id="results" class="screen results" hidden>
+    <p class="label" id="resultMode"></p>
+    <h2 id="resultTitle"></h2>
+    <p class="result-main" id="resultMain"></p>
+    <dl class="result-stats" id="resultStats"></dl>
+    <p class="result-best" id="resultBest"></p>
+    <div class="actions">
+      <button type="button" class="primary" id="again">Play again</button>
+      <button type="button" class="secondary" id="toHome">Home</button>
+    </div>
+  </main>
+</body>
+</html>
