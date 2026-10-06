@@ -34,7 +34,7 @@ To try it on a phone on the same Wi-Fi, run `npx wrangler dev --ip 0.0.0.0` and 
 
 Players pick a level, which sets how many symbols each card has: Easy (6), Medium (8) or Hard (12). The levels are `LEVELS` in `shared/generator.js`. The deck generator and the room API also accept 3 or 4, but the app no longer offers them. The deck is capped at 57 cards, because the full deck for 12 symbols per card would have 133.
 
-The home screen has a white bar across the top with the logo on the left and a "New here? Play the tutorial" button on the right. Below it are the title with a one-line description of the game, a box for joining a game with a room code, and a big round card holding "Play solo game" and "Play with friends". Tapping either one turns the card over to choose a level; for solo play the card also has a toggle between the two solo modes. The tutorial isn't built yet: its button only says it's coming soon. Buttons on the home screen grow slightly when pressed.
+The home screen has a white bar across the top with the logo on the left and a "New here? Play the tutorial" button on the right. Below it are the title with a one-line description of the game, a box for joining a game with a room code, and a big round card holding "Play with friends" and "Play a solo game" as outlined circles with a shadow, like the logo. Tapping either one turns the card over to choose a level; for solo play the card also has a toggle between the two solo modes. The tutorial isn't built yet: its button only says it's coming soon. Buttons on the home screen grow slightly when pressed.
 
 On every screen the centre card is on top and the player's own card is below. Tapping the one symbol the two cards share scores; a tap counts as soon as the finger touches the screen.
 
@@ -243,4 +243,4 @@ The current deployment is at https://dobble.dobble.workers.dev. The deployed app
 - **Fonts.** The home screen loads Fredoka and Nunito from Google Fonts. Without a connection to Google it falls back to the system's rounded font.
 
 <!-- readme-synced: see AGENTS.md "Keeping the README current". Updated by the update-readme skill. -->
-<!-- readme-synced-commit: 1bb99c0 -->
+<!-- readme-synced-commit: 547ff5f -->

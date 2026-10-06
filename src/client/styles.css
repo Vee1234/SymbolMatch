@@ -128,7 +128,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 /* Pulling down past the top on an iPhone reveals what's above the page: keep it white like
    the bar. (The page underneath stays light blue, which shows when pulling up at the bottom.) */
 .topbar::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 100vh; background: #fff; }
-.logo { flex: none; width: 44px; height: 44px; }
+.logo { flex: none; width: 48px; height: 48px; }
 .tutorial {
   min-height: 44px;
   display: flex;
@@ -176,9 +176,10 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   container-type: size;
 }
 .face { position: absolute; inset: 0; }
-.dot { position: absolute; aspect-ratio: 1; border-radius: 50%; }
-.dot-a { left: 20.6%; bottom: 12.9%; width: 20.6%; background: rgba(191, 227, 247, .5); }
-.dot-b { left: 47%; top: 7.6%; width: 8.8%; background: rgba(249, 201, 217, .6); }
+/* Circles on the card are outlined in black with a hard offset shadow, like the logo. */
+.dot { position: absolute; aspect-ratio: 1; border: 2.5px solid #000; border-radius: 50%; box-shadow: 3px 3px 0 #000; }
+.dot-a { left: 20.6%; bottom: 12.9%; width: 20.6%; background: var(--blue-pale); }
+.dot-b { left: 47%; top: 7.6%; width: 8.8%; background: var(--pink-pale); }
 .option {
   position: absolute;
   aspect-ratio: 1;
@@ -187,15 +188,16 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   align-items: center;
   justify-content: center;
   gap: 1cqw;
-  border: 0;
+  border: 3px solid #000;
   border-radius: 50%;
+  box-shadow: 5px 5px 0 #000;
   font: 600 5.6cqw/1.1 var(--display);
   text-align: center;
 }
 .option-emoji { font-size: 12.9cqw; line-height: 1; }
-.option-solo { left: 10%; top: 13.5%; width: 44%; background: var(--pink); rotate: -8deg; }
-.option-friends { right: 8.8%; top: 39.4%; width: 41%; background: var(--blue); rotate: 10deg; font-size: 5.3cqw; }
-.option-friends .option-emoji { font-size: 11.8cqw; }
+.option-first { left: 10%; top: 13.5%; width: 44%; background: var(--pink); rotate: -8deg; }
+.option-second { right: 8.8%; top: 39.4%; width: 41%; background: var(--blue); rotate: 10deg; font-size: 5.3cqw; }
+.option-second .option-emoji { font-size: 11.8cqw; }
 
 .pick { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.4cqw; }
 .solo-modes { display: flex; flex-direction: column; align-items: center; gap: 1.8cqw; }
