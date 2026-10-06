@@ -14,6 +14,9 @@ import { shuffle } from "./generator.js";
 export const WRONG_TAPS_ALLOWED_PER_CARD = 1;
 export const WRONG_TAPS_ALLOWED_PER_GAME = 5;
 export const CLOCK_DURATION_MS = 60_000;
+// Every game, solo or with friends, opens with a 3, 2, 1, Go! countdown (a second each).
+// Taps don't count until it's over, and the clock starts when it ends.
+export const COUNTDOWN_MS = 4000;
 
 export const MODES = {
   clock: "clock", // Beat the clock: as many matches as possible in a fixed time

@@ -199,18 +199,6 @@
         <div class="card mine" id="roomYours"></div>
         <p class="pile-label" id="roomYoursLabel">Your card</p>
       </section>
-
-      <!-- The opening 3, 2, 1, Go! runs on top of the table, then fades to reveal the cards. -->
-      <div class="countdown" id="countdown" hidden>
-        <p class="label" id="countdownMode"></p>
-        <p class="countdown-heading" id="countdownHeading">Get ready!</p>
-        <div class="countdown-card">
-          <div class="orbit" aria-hidden="true"><span></span><span></span></div>
-          <div class="countdown-circle" id="countdownCircle" role="timer" aria-live="assertive"></div>
-        </div>
-        <p class="section-title">Playing this round</p>
-        <ul class="countdown-players" id="countdownPlayers"></ul>
-      </div>
     </div>
   </main>
 
@@ -238,6 +226,18 @@
       <button type="button" class="wide white" id="roomLeave">Leave room</button>
     </div>
   </main>
+
+  <!-- The 3, 2, 1, Go! that opens every game, solo or with friends: it covers the table, then fades to reveal the cards. -->
+  <div class="countdown" id="countdown" hidden>
+    <p class="label" id="countdownMode"></p>
+    <p class="countdown-heading" id="countdownHeading">Get ready!</p>
+    <div class="countdown-card">
+      <div class="orbit" aria-hidden="true"><span></span><span></span></div>
+      <div class="countdown-circle" id="countdownCircle" role="timer" aria-live="assertive"></div>
+    </div>
+    <p class="section-title" id="countdownPlayersTitle">Playing this round</p>
+    <ul class="countdown-players" id="countdownPlayers"></ul>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>

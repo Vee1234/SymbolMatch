@@ -84,3 +84,54 @@ export function renderPips(el, used, total) {
   el.classList.toggle("last-chance", used >= total);
   el.setAttribute("aria-label", `${used} of ${total} mistakes used`);
 }
+
+// The 3, 2, 1, Go! that opens every game, drawn over the table. ms is how long is left (a
+// friends game can be joined partway through); title is the mode and level; players is a
+// list of elements for "Playing this round", or null to leave that out. onDone runs once
+// the countdown has faded away.
+let countdownTimer = 0;
+
+export function runCountdown(ms, { title, players = null, onDone }) {
+  stopCountdown();
+  const overlay = $("countdown");
+  $("countdownMode").textContent = title;
+  $("countdownPlayersTitle").hidden = $("countdownPlayers").hidden = !players;
+  $("countdownPlayers").replaceChildren(...(players ?? []));
+  overlay.classList.remove("fading");
+  overlay.hidden = false;
+
+  const endsAt = performance.now() + ms;
+  let shown = "";
+  const tick = () => {
+    const left = endsAt - performance.now();
+    if (left <= 0) {
+      overlay.classList.add("fading");
+      countdownTimer = setTimeout(() => {
+        overlay.hidden = true;
+        countdownTimer = 0;
+        onDone?.();
+      }, 350);
+      return;
+    }
+    const label = left > 3000 ? "3" : left > 2000 ? "2" : left > 1000 ? "1" : "Go!";
+    if (label !== shown) {
+      shown = label;
+      const number = document.createElement("span");
+      number.className = "count";
+      number.textContent = label;
+      $("countdownCircle").replaceChildren(number);
+      $("countdownCircle").classList.toggle("is-go", label === "Go!");
+      $("countdownHeading").textContent = label === "Go!" ? "Symbolic!" : "Get ready!";
+    }
+    countdownTimer = setTimeout(tick, 50);
+  };
+  tick();
+}
+
+export function stopCountdown() {
+  clearTimeout(countdownTimer);
+  countdownTimer = 0;
+  $("countdown").hidden = true;
+}
+
+export const countdownRunning = () => countdownTimer !== 0;
