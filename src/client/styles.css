@@ -457,7 +457,7 @@ button:active:not(:disabled):not(.symbol) { scale: 1.06; transition-duration: .0
 }
 
 /* The opening countdown, on top of the table: 3, 2 and 1 in a pink circle, Go! in the
-   background blue, each growing a little before the next, with two dots orbiting. */
+   light blue, each growing a little before the next, with two dots orbiting. */
 .countdown {
   position: absolute;
   z-index: 2;
@@ -495,7 +495,7 @@ button:active:not(:disabled):not(.symbol) { scale: 1.06; transition-duration: .0
   display: grid;
   place-items: center;
 }
-.countdown-circle.go { background: var(--sky); }
+.countdown-circle.go { background: var(--blue); }
 .count { display: inline-block; font: 700 min(110px, 28vw)/1 var(--display); animation: count-grow 1s cubic-bezier(.2, .7, .3, 1) forwards; }
 .countdown-circle.go .count { font-size: min(76px, 19vw); }
 .countdown-players { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
