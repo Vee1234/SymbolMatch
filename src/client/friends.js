@@ -2,7 +2,7 @@
 // The room on the server (src/server/room.js) runs the rules; this file only shows its
 // state and sends taps.
 
-import { SUPPORTED_SYMBOLS_PER_CARD } from "./shared/generator.js";
+import { LEVELS, levelName } from "./shared/generator.js";
 import { WRONG_TAPS_ALLOWED_PER_GAME } from "./shared/game.js";
 import { MULTIPLAYER_MODES, MIN_PLAYERS } from "./shared/multiplayer.js";
 import { $, show, store, toast, segmented, renderPips } from "./ui.js";
@@ -39,6 +39,7 @@ let lastTapped = null;
 let shownCentreSeq = null;
 let shownYourCard = "";
 let leaveArmedUntil = 0;
+let levelForNewRoom = null; // symbols per card chosen on the home screen, set once the room exists
 
 const nameOf = id => state?.players.find(p => p.id === id)?.name ?? "Someone";
 const savedName = () => (store.get("playerName") ?? "").trim();
@@ -46,7 +47,6 @@ const savedName = () => (store.get("playerName") ?? "").trim();
 export function initFriends(options) {
   goHome = options.goHome;
 
-  $("openFriends").addEventListener("click", () => openFriendsScreen());
   $("friendsBack").addEventListener("click", () => goHome());
   $("playerName").value = savedName();
   $("playerName").addEventListener("input", () => store.set("playerName", $("playerName").value.trim()));
@@ -54,9 +54,7 @@ export function initFriends(options) {
   $("createRoom").addEventListener("click", createRoom);
   $("joinForm").addEventListener("submit", event => {
     event.preventDefault();
-    const code = $("roomCode").value.trim().toUpperCase();
-    if (!ROOM_CODE.test(code)) return toast("Room codes are 5 letters and numbers", "bad");
-    joinRoom(code);
+    joinWithCode($("roomCode").value);
   });
 
   $("shareRoom").addEventListener("click", shareRoom);
@@ -75,6 +73,22 @@ export function initFriends(options) {
   // Opened from an invite link: ?room=CODE
   const code = new URLSearchParams(location.search).get("room")?.toUpperCase();
   if (code && ROOM_CODE.test(code)) joinRoom(code);
+}
+
+// "Play with friends" on the home screen, after picking a level.
+export function createRoomAtLevel(symbolsPerCard) {
+  levelForNewRoom = symbolsPerCard;
+  if (savedName()) return createRoom();
+  openFriendsScreen();
+  $("playerName").focus();
+  toast("Add your name, then tap Create a game");
+}
+
+export function joinWithCode(input) {
+  const code = input.trim().toUpperCase();
+  if (!ROOM_CODE.test(code)) return toast("Room codes are 5 letters and numbers", "bad");
+  levelForNewRoom = null;
+  joinRoom(code);
 }
 
 function openFriendsScreen(code = "") {
@@ -139,6 +153,10 @@ function connect(code) {
     const message = JSON.parse(event.data);
     if (message.type === "state") {
       state = message;
+      if (levelForNewRoom && state.phase === "lobby" && state.hostId === playerId) {
+        send({ type: "settings", symbolsPerCard: levelForNewRoom });
+        levelForNewRoom = null;
+      }
       render();
     } else if (message.type === "event") {
       handleEvent(message);
@@ -188,7 +206,7 @@ async function shareRoom() {
   const text = `Join my game! Room ${roomCode}`;
   if (navigator.share) {
     try {
-      return await navigator.share({ title: "Dobble", text, url });
+      return await navigator.share({ title: "Symbolic", text, url });
     } catch (error) {
       if (error.name === "AbortError") return; // they closed the share sheet
     }
@@ -234,7 +252,7 @@ function renderLobby() {
 
   const options = Object.entries(MODE_INFO).map(([value, info]) => ({ value, label: info.name }));
   segmented($("roomModePicker"), options, mode, value => send({ type: "settings", mode: value }), { disabled: !isHost });
-  segmented($("roomSizePicker"), SUPPORTED_SYMBOLS_PER_CARD.map(n => ({ value: n, label: n })), symbolsPerCard,
+  segmented($("roomSizePicker"), LEVELS.map(level => ({ value: level.symbolsPerCard, label: level.name })), symbolsPerCard,
     value => send({ type: "settings", symbolsPerCard: value }), { disabled: !isHost });
   $("roomModeHint").textContent = MODE_INFO[mode].hint;
 
@@ -294,7 +312,7 @@ function renderResults() {
   const winners = game.standings.filter(s => s.place === 1 && !s.forfeited);
   const youWon = winners.some(s => s.id === playerId);
 
-  $("roomResultMode").textContent = `${MODE_INFO[game.mode].name} · ${state.settings.symbolsPerCard} per card`;
+  $("roomResultMode").textContent = `${MODE_INFO[game.mode].name} · ${levelName(state.settings.symbolsPerCard)}`;
   $("roomResultTitle").textContent = youWon
     ? (winners.length > 1 ? "You tied for first!" : "You win!")
     : winners.length ? `${winners.map(s => nameOf(s.id)).join(" & ")} ${winners.length > 1 ? "win" : "wins"}` : "Game over";

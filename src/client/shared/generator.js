@@ -5,6 +5,17 @@
 // Symbols per card that the algorithm supports: q + 1 for prime q.
 export const SUPPORTED_SYMBOLS_PER_CARD = [3, 4, 6, 8, 12];
 
+// The difficulty levels players choose from, easiest first (docs/UiRequirements.md).
+export const LEVELS = [
+  { id: "easy", name: "Easy", symbolsPerCard: 6 },
+  { id: "medium", name: "Medium", symbolsPerCard: 8 },
+  { id: "hard", name: "Hard", symbolsPerCard: 12 },
+];
+
+export function levelName(symbolsPerCard) {
+  return LEVELS.find(level => level.symbolsPerCard === symbolsPerCard)?.name ?? `${symbolsPerCard} per card`;
+}
+
 // Games use at most this many cards (GameRequirements.md). The full deck for 12 symbols
 // per card would have 133, which is far too long a game.
 export const MAX_CARDS = 57;

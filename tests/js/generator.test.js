@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { DeckGenerator, deckSizeFor } from "../../src/client/shared/generator.js";
+import { DeckGenerator, deckSizeFor, LEVELS, levelName, SUPPORTED_SYMBOLS_PER_CARD } from "../../src/client/shared/generator.js";
 import { SetChecker } from "../../src/client/shared/checker.js";
 
 const symbolPool = q => Array.from({ length: deckSizeFor(q) }, (_, id) => id);
@@ -54,4 +54,15 @@ test("rejects repeated symbols", () => {
   const pool = symbolPool(2);
   pool[pool.length - 1] = pool[0];
   assert.throws(() => new DeckGenerator(2, pool), RangeError);
+});
+
+test("every difficulty level uses a supported card size, getting harder in order", () => {
+  assert.deepEqual(LEVELS.map(level => level.symbolsPerCard), [6, 8, 12]);
+  for (const level of LEVELS) assert.ok(SUPPORTED_SYMBOLS_PER_CARD.includes(level.symbolsPerCard), level.name);
+});
+
+test("levelName names a card size by its level", () => {
+  assert.equal(levelName(6), "Easy");
+  assert.equal(levelName(12), "Hard");
+  assert.equal(levelName(4), "4 per card");
 });

@@ -1,10 +1,10 @@
-# Dobble
+# Symbolic
 
-A web version of the card game Dobble (also sold as Spot It!) that people play on their phones, alone against a timer or together from anywhere by sharing a link. Every two cards share exactly one symbol; the first player to spot it wins the round.
+Symbolic is a spot-the-match card game, based on Dobble (also sold as Spot It!), that people play on their phones, alone against a timer or together from anywhere by sharing a link. Every two cards share exactly one symbol; the first player to spot it wins the round.
 
 It runs on Cloudflare Workers: one deploy serves the app and hosts the multiplayer game rooms.
 
-> Dobble is a trademark of Asmodee. Choose another name before publishing this widely.
+> Dobble is a trademark of Asmodee; this project is not affiliated with it.
 
 ## Contents
 
@@ -32,7 +32,9 @@ To try it on a phone on the same Wi-Fi, run `npx wrangler dev --ip 0.0.0.0` and 
 
 ## How the game plays
 
-Players choose how many symbols each card has: 3, 4, 6, 8 or 12. The deck is capped at 57 cards, because the full deck for 12 symbols per card would have 133.
+Players pick a level, which sets how many symbols each card has: Easy (6), Medium (8) or Hard (12). The levels are `LEVELS` in `shared/generator.js`. The deck generator and the room API also accept 3 or 4, but the app no longer offers them. The deck is capped at 57 cards, because the full deck for 12 symbols per card would have 133.
+
+The home screen shows a "New here? Play the tutorial" button, a box for joining a game with a room code, and a big round card holding "Play solo game" and "Play with friends". Tapping either one turns the card over to choose a level; for solo play the card also has a toggle between the two solo modes. The tutorial isn't built yet: its button only says it's coming soon. Buttons on the home screen grow slightly when pressed.
 
 On every screen the centre card is on top and the player's own card is below. Tapping the one symbol the two cards share scores; a tap counts as soon as the finger touches the screen.
 
@@ -164,7 +166,7 @@ src/
     cards.js              draws cards (symbol layout, tap handling)
     ui.js                 small helpers: screens, toasts, storage, segmented pickers
     shared/               pure game logic, used by the phones AND the server
-      generator.js        DeckGenerator: builds decks (projective plane); MAX_CARDS
+      generator.js        DeckGenerator: builds decks (projective plane); MAX_CARDS; difficulty LEVELS
       checker.js          SetChecker: the four deck checks
       game.js             solo rules (SoloGame) and the wrong-tap limits
       multiplayer.js      multiplayer rules: createGame, applyTap, standings, viewFor
@@ -200,6 +202,7 @@ python3 -m unittest tests/TestDeckGenerator.py   # Python reference implementati
 The JavaScript tests cover:
 
 - valid decks for every supported card size
+- that each difficulty level uses a supported card size
 - each of the four checks catching a deck the others miss (missing card, near-pencil, windmill, moved symbol)
 - the wrong-tap and forfeit rules
 - simultaneous taps
@@ -235,6 +238,7 @@ The current deployment is at https://dobble.dobble.workers.dev. The deployed app
 - **Card sizes.** Only prime q is supported (3, 4, 6, 8 or 12 symbols per card). Prime powers such as q = 4 or 8 would need finite-field arithmetic.
 - **Joining mid-game.** A player who joins during a game waits in the lobby for the next round.
 - **Rooms expire** after 24 hours without activity.
+- **Fonts.** The home screen loads Fredoka and Nunito from Google Fonts. Without a connection to Google it falls back to the system's rounded font.
 
 <!-- readme-synced: see AGENTS.md "Keeping the README current". Updated by the update-readme skill. -->
-<!-- readme-synced-commit: 795f386 -->
+<!-- readme-synced-commit: 533a2de -->
