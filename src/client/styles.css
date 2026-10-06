@@ -495,9 +495,9 @@ button:active:not(:disabled):not(.symbol) { scale: 1.06; transition-duration: .0
   display: grid;
   place-items: center;
 }
-.countdown-circle.go { background: var(--blue); }
+.countdown-circle.is-go { background: var(--blue); }
 .count { display: inline-block; font: 700 min(110px, 28vw)/1 var(--display); animation: count-grow 1s cubic-bezier(.2, .7, .3, 1) forwards; }
-.countdown-circle.go .count { font-size: min(76px, 19vw); }
+.countdown-circle.is-go .count { font-size: min(76px, 19vw); }
 .countdown-players { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
 .countdown-players li { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; }
 .countdown-players .initial { width: 52px; height: 52px; box-shadow: 3px 3px 0 #000; font-size: 22px; }
