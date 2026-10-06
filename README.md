@@ -62,7 +62,7 @@ Best scores are saved on the phone, separately for each mode and card size.
 - Every wrong tap counts towards the game. The 6th wrong tap in a game forfeits it.
 - In multiplayer, if every remaining player is locked out of the same card, Pick one up turns over the next card and Put one down lifts the lockouts, so the game can't get stuck.
 
-**Starting a multiplayer game.** Everyone in the lobby sees who's in the room and taps **I'm ready** when they're set. The host's Start button stays greyed out until at least two players are online and all of them are ready. Offline players aren't dealt in, so they don't hold the game up. Changing the mode or level, or going back to the lobby after a game, clears everyone's Ready.
+**Starting a multiplayer game.** A friend who opens an invite link without a saved name sees just a name box and **Join game**. Everyone in the lobby sees who's in the room and taps **I'm ready** when they're set. Only the host can change the mode and level (other players see them greyed out, with a note saying so) and only the host has a Start button. The host's Start button stays greyed out until at least two players are online and all of them are ready. Offline players aren't dealt in, so they don't hold the game up. Changing the mode or level, or going back to the lobby after a game, clears everyone's Ready.
 
 Every game opens with a 3, 2, 1, Go! countdown on top of the game screen, showing who's playing; then it fades and the cards are dealt in. The room ignores taps until the countdown ends (`COUNTDOWN_MS` in `shared/multiplayer.js`, 4 seconds) and match times start from then. Each phone runs the countdown from the time the room says is left, so the phones don't need their clocks to agree.
 
@@ -273,4 +273,4 @@ The current deployment is at https://dobble.dobble.workers.dev. The deployed app
 - **Fonts.** The app loads Fredoka and Nunito from Google Fonts. Without a connection to Google it falls back to the system's rounded font.
 
 <!-- readme-synced: see AGENTS.md "Keeping the README current". Updated by the update-readme skill. -->
-<!-- readme-synced-commit: 050d033 -->
+<!-- readme-synced-commit: 77fff75 -->

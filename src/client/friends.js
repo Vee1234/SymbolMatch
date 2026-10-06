@@ -100,10 +100,12 @@ export function joinWithCode(input) {
   joinRoom(code);
 }
 
-// The name screen either creates a room or, when opened from an invite, joins one.
+// The name screen either creates a room or, when opened from an invite, joins one. A friend
+// joining sees just the name box and Join game: the description is for whoever creates it.
 function openFriendsScreen(code = "") {
   codeToJoin = code;
-  $("createRoom").textContent = code ? `Join game ${code}` : "Create a game";
+  $("createRoom").textContent = code ? "Join game" : "Create a game";
+  $("friendsIntro").hidden = Boolean(code);
   show("friends");
 }
 
@@ -294,6 +296,8 @@ function renderLobby() {
   segmented($("roomSizePicker"), LEVELS.map(level => ({ value: level.symbolsPerCard, label: level.name })), symbolsPerCard,
     value => send({ type: "settings", symbolsPerCard: value }), { disabled: !isHost });
   $("roomModeHint").textContent = MODE_INFO[mode].hint;
+  const host = nameOf(state.hostId);
+  $("hostOnlyNote").textContent = isHost ? "" : `Only ${host} (the host) can change these`;
 
   $("readyToggle").hidden = inProgress;
   $("readyToggle").setAttribute("aria-pressed", String(Boolean(me?.ready)));
@@ -307,9 +311,11 @@ function renderLobby() {
     : `Start game with ${connectedCount}`;
   $("lobbyWaiting").textContent = inProgress
     ? "A game is in progress. You'll be in the next round."
-    : !me?.ready ? "Tap I'm ready when you're set. The game starts once everyone is."
-    : isHost ? (canStart ? "Everyone's ready. Start when you like." : "Share the link, then start once everyone's ready.")
-    : `Waiting for ${nameOf(state.hostId)} to start the game.`;
+    : isHost ? (!me?.ready ? "Tap I'm ready when you're set. The game starts once everyone is."
+      : canStart ? "Everyone's ready. Start when you like." : "Share the link, then start once everyone's ready.")
+    : !me?.ready ? `Tap I'm ready when you're set. ${host} (the host) starts the game once everyone is.`
+    : canStart ? `Everyone's ready. Waiting for ${host} to start the game…`
+    : `Waiting for everyone to be ready. ${host} (the host) starts the game.`;
   show("lobby");
 }
 
