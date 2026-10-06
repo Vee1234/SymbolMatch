@@ -158,6 +158,7 @@
 
     <p class="hint" id="lobbyWaiting"></p>
     <div class="actions">
+      <button type="button" class="secondary ready-toggle" id="readyToggle" aria-pressed="false">I'm ready</button>
       <button type="button" class="primary" id="startRoom">Start game</button>
       <button type="button" class="secondary" id="leaveRoom">Leave room</button>
     </div>
@@ -183,7 +184,13 @@
   <main id="roomResults" class="screen results" hidden>
     <p class="label" id="roomResultMode"></p>
     <h2 id="roomResultTitle"></h2>
+    <p class="verdict" id="roomVerdict"></p>
+    <p class="hint" id="roomDuration"></p>
     <ol class="standings" id="standings"></ol>
+    <section class="badges" id="roomBadgesSection" aria-labelledby="roomBadgesLabel">
+      <h3 class="label" id="roomBadgesLabel">Badges</h3>
+      <ul class="badge-list" id="roomBadges"></ul>
+    </section>
     <p class="hint" id="roomResultWaiting"></p>
     <div class="actions">
       <button type="button" class="primary" id="roomAgain">Play again</button>

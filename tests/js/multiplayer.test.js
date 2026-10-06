@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 
 import { DeckGenerator, deckSizeFor } from "../../src/client/shared/generator.js";
 import { sharedSymbol } from "../../src/client/shared/game.js";
-import { createGame, applyTap, standings, viewFor, isLockedOut } from "../../src/client/shared/multiplayer.js";
+import {
+  createGame, applyTap, standings, viewFor, isLockedOut, playerStats, awardBadges, gameSummary, readiness, forfeitPlayer,
+} from "../../src/client/shared/multiplayer.js";
+import { verdictFor, verdictKind, VERDICTS } from "../../src/client/shared/verdicts.js";
 
 const makeDeck = q => new DeckGenerator(q, Array.from({ length: deckSizeFor(q) }, (_, id) => id)).generate();
 const yours = (game, id) => game.players[id].pile.at(-1);
@@ -107,4 +110,137 @@ test("games that can't be dealt are rejected", () => {
   assert.throws(() => createGame(makeDeck(2), "tower", ["a"]), RangeError);
   assert.throws(() => createGame(makeDeck(2), "tower", "abcdefg".split("")), RangeError);
   assert.throws(() => createGame(makeDeck(7), "snap", ["a", "b"]), RangeError);
+});
+
+/* ---------- end-of-game summary ---------- */
+
+const tapAt = (game, id, symbol, now) => applyTap(game, id, symbol, game.centreSeq, now);
+
+test("each match records how long the centre card had been showing", () => {
+  const game = createGame(makeDeck(7), "tower", ["a", "b"], 1000);
+  tapAt(game, "a", right(game, "a"), 3000); // 2 s after the start
+  tapAt(game, "b", right(game, "b"), 3500); // 0.5 s after the new centre card
+  tapAt(game, "a", right(game, "a"), 7500); // 4 s
+  const [a, b] = playerStats(game);
+  assert.deepEqual(game.players.a.matchTimes, [2000, 4000]);
+  assert.equal(a.averageMs, 3000);
+  assert.equal(a.fastestMs, 2000);
+  assert.equal(b.fastestMs, 500);
+});
+
+test("players who never made a match have no times", () => {
+  const game = createGame(makeDeck(7), "tower", ["a", "b"], 0);
+  tapAt(game, "a", right(game, "a"), 100);
+  const b = playerStats(game).find(s => s.id === "b");
+  assert.equal(b.matches, 0);
+  assert.equal(b.averageMs, null);
+  assert.equal(b.fastestMs, null);
+});
+
+test("the summary says how long the game lasted, and only once it has ended", () => {
+  const game = createGame(makeDeck(2), "well", ["a", "b"], 10_000);
+  assert.equal(viewFor(game, "a").summary, null);
+  let now = 10_000;
+  while (game.status === "playing") {
+    now += 1000;
+    tapAt(game, "a", right(game, "a"), now);
+  }
+  const view = viewFor(game, "a");
+  assert.equal(view.summary.durationMs, now - 10_000);
+  assert.equal(view.summary.players.length, 2);
+});
+
+test("winning centre cards in a row builds a streak; anyone else winning resets it", () => {
+  const game = createGame(makeDeck(7), "tower", ["a", "b"], 0);
+  for (const id of ["a", "a", "a", "b", "a"]) tapAt(game, id, right(game, id), 1);
+  assert.equal(game.players.a.bestStreak, 3);
+  assert.equal(game.players.a.streak, 1);
+});
+
+test("badges go to every player who ties for them and are left out when nobody qualifies", () => {
+  const stats = [
+    { id: "a", matches: 3, averageMs: 900, fastestMs: 400, wrongTotal: 0, bestStreak: 3 },
+    { id: "b", matches: 3, averageMs: 1200, fastestMs: 400, wrongTotal: 4, bestStreak: 1 },
+    { id: "c", matches: 0, averageMs: null, fastestMs: null, wrongTotal: 1, bestStreak: 0 },
+  ];
+  const byBadge = Object.fromEntries(awardBadges(stats).map(b => [b.badge, b.playerIds]));
+  assert.deepEqual(byBadge.quickest, ["a", "b"]);
+  assert.deepEqual(byBadge.fastestAverage, ["a"]);
+  assert.deepEqual(byBadge.sharpshooter, ["a"]);
+  assert.deepEqual(byBadge.hotStreak, ["a"]);
+  assert.deepEqual(byBadge.butterfingers, ["b"]);
+
+  const quiet = awardBadges([{ id: "a", matches: 1, averageMs: 5, fastestMs: 5, wrongTotal: 1, bestStreak: 1 }]);
+  assert.deepEqual(quiet.map(b => b.badge), ["quickest"]);
+});
+
+test("a game saved before times were recorded still finishes and summarises", () => {
+  const game = createGame(makeDeck(7), "tower", ["a", "b"], 0);
+  for (const key of ["startedAt", "endedAt", "centreShownAt", "lastWinner"]) delete game[key];
+  for (const p of Object.values(game.players)) {
+    delete p.matchTimes; delete p.streak; delete p.bestStreak;
+  }
+  assert.equal(tap(game, "a", right(game, "a")), "correct");
+  assert.equal(gameSummary(game).durationMs, null);
+  assert.equal(playerStats(game)[0].matches, 1);
+});
+
+test("each player gets a deadpan line for how they finished", () => {
+  const all = [
+    { id: "a", place: 1, won: 9, wrongTotal: 1, forfeited: false },
+    { id: "b", place: 2, won: 4, wrongTotal: 0, forfeited: false },
+    { id: "c", place: 3, won: 0, wrongTotal: 0, forfeited: false },
+    { id: "d", place: 4, won: 0, wrongTotal: 2, forfeited: false },
+    { id: "e", place: 5, won: 3, wrongTotal: 6, forfeited: true, forfeitReason: "wrongTaps" },
+    { id: "f", place: 5, won: 1, wrongTotal: 0, forfeited: true, forfeitReason: "left" },
+  ];
+  assert.deepEqual(all.map(s => verdictKind(s, all)), ["first", "middle", "noResult", "middle", "wrongTaps", "left"]);
+  const two = [
+    { id: "a", place: 1, won: 5, wrongTotal: 0, forfeited: false },
+    { id: "b", place: 2, won: 2, wrongTotal: 1, forfeited: false },
+  ];
+  assert.equal(verdictKind(two[1], two), "last");
+  const tie = [
+    { id: "a", place: 1, won: 5, wrongTotal: 0, forfeited: false },
+    { id: "b", place: 1, won: 5, wrongTotal: 0, forfeited: false },
+  ];
+  assert.deepEqual(tie.map(s => verdictKind(s, tie)), ["first", "first"]);
+});
+
+test("every way of finishing has plenty of different lines", () => {
+  for (const [kind, lines] of Object.entries(VERDICTS)) {
+    assert.equal(new Set(lines).size, lines.length, `${kind} has a repeated line`);
+    assert.ok(lines.length >= 30, kind);
+  }
+});
+
+test("standings say whether a forfeit came from leaving or from wrong taps", () => {
+  const game = createGame(makeDeck(7), "tower", ["a", "b", "c"]);
+  forfeitPlayer(game, "c");
+  for (let i = 0; i < 6; i++) {
+    if (isLockedOut(game, "b")) tap(game, "a", right(game, "a")); // a new centre card ends the lockout
+    tap(game, "b", wrong(game, "b"));
+  }
+  const reasons = Object.fromEntries(standings(game).map(s => [s.id, s.forfeitReason]));
+  assert.deepEqual(reasons, { a: null, b: "wrongTaps", c: "left" });
+});
+
+/* ---------- ready to start ---------- */
+
+test("the game can start only when at least two players are in and everyone is ready", () => {
+  const p = (id, ready, connected = true) => ({ id, ready, connected });
+  assert.equal(readiness([p("a", true)]).canStart, false);
+  assert.deepEqual(readiness([p("a", true), p("b", false)]), { players: 2, waitingFor: ["b"], canStart: false });
+  assert.equal(readiness([p("a", true), p("b", true)]).canStart, true);
+  // Offline players aren't dealt in, so they don't hold the game up.
+  assert.deepEqual(readiness([p("a", true), p("b", true), p("c", false, false)]), { players: 2, waitingFor: [], canStart: true });
+});
+
+test("every phone picks the same line for the same player", () => {
+  const all = [
+    { id: "a", place: 1, won: 5, wrongTotal: 0, forfeited: false },
+    { id: "b", place: 2, won: 2, wrongTotal: 0, forfeited: false },
+  ];
+  assert.equal(verdictFor(all[0], all, 123), verdictFor(all[0], all, 123));
+  assert.ok(VERDICTS.first.includes(verdictFor(all[0], all, 123)));
 });

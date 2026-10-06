@@ -60,6 +60,25 @@ Best scores are saved on the phone, separately for each mode and card size.
 - Every wrong tap counts towards the game. The 6th wrong tap in a game forfeits it.
 - In multiplayer, if every remaining player is locked out of the same card, Pick one up turns over the next card and Put one down lifts the lockouts, so the game can't get stuck.
 
+**Starting a multiplayer game.** Everyone in the lobby sees who's in the room and taps **I'm ready** when they're set. The host's Start button stays greyed out until at least two players are online and all of them are ready. Offline players aren't dealt in, so they don't hold the game up. Changing the mode or level, or going back to the lobby after a game, clears everyone's Ready.
+
+**End of a multiplayer game.** The results screen shows:
+
+- your own deadpan one-liner, chosen by how you finished: first (including joint first), middle, last, forfeited by leaving, forfeited by too many wrong taps, or "no result" for a player who never tapped at all. Everyone sees the same line for the same player, because it's picked from the player id and the game's start time. The lines are in `shared/verdicts.js`.
+- how long the game lasted
+- each player's cards, average and fastest match time, and wrong taps, with their one-liner under their row
+- badges, each going to every player who ties for it:
+
+| Badge | For |
+|---|---|
+| ⚡ Quickest draw | The single fastest match |
+| 🏎️ Consistently quick | The fastest average match time, with at least 3 matches |
+| 🎯 Sharpshooter | Making matches without a single wrong tap |
+| 🔥 Hot streak | The most centre cards won in a row, at least 3 |
+| 🧈 Butterfingers | The most wrong taps, at least 3 |
+
+A match time is how long the centre card had been showing when the player spotted it. The room measures it with its own clock, so a phone can't fake it, though a slow connection adds to it.
+
 ## Architecture
 
 ```mermaid
@@ -140,8 +159,9 @@ Invite links have the form `https://<host>/?room=CODE`.
 | Message | Who | Effect |
 |---|---|---|
 | `{ type: "join", playerId, name }` | anyone | Joins or rejoins. `playerId` is a UUID saved on the phone, so a dropped connection gets its seat back. The first player becomes host. |
-| `{ type: "settings", mode?, symbolsPerCard? }` | host, lobby | `mode` is `"tower"` (Pick one up) or `"well"` (Put one down) |
-| `{ type: "start" }` | host, lobby | Deals a game for the connected players (2 to 8) |
+| `{ type: "settings", mode?, symbolsPerCard? }` | host, lobby | `mode` is `"tower"` (Pick one up) or `"well"` (Put one down). Clears everyone's Ready, so they agree to the new settings |
+| `{ type: "ready", ready }` | player, lobby | Marks the player ready (`true`) or not ready (`false`) |
+| `{ type: "start" }` | host, lobby | Deals a game for the connected players (2 to 8). Refused until every connected player is ready |
 | `{ type: "tap", symbol, centreSeq }` | player | `centreSeq` identifies the centre card the player saw; a stale one gets `tooLate` |
 | `{ type: "again" }` | host, results | Back to the lobby with the same players |
 | `{ type: "leave" }` | anyone | Leaves; mid-game this counts as forfeiting |
@@ -150,7 +170,7 @@ Invite links have the form `https://<host>/?room=CODE`.
 
 | Message | Contents |
 |---|---|
-| `{ type: "state", … }` | Sent after every change, personalised per player: `code`, `you`, `hostId`, `phase` (`lobby`, `playing` or `ended`), `settings`, `players` (name, online status), `emoji` (the id → emoji map for this game) and `game`, the player's view: centre card, their own card, everyone's scores and lockouts, and the standings when the game ends |
+| `{ type: "state", … }` | Sent after every change, personalised per player: `code`, `you`, `hostId`, `phase` (`lobby`, `playing` or `ended`), `settings`, `players` (name, online status, ready), `emoji` (the id → emoji map for this game) and `game`, the player's view: centre card, their own card, everyone's scores and lockouts, and when the game ends the standings and a `summary` (start time, length, each player's match times and wrong taps, badges) |
 | `{ type: "event", kind, playerId, symbol }` | What a tap did: `correct`, `wrong`, `lockedOut` or `forfeit` go to everyone; `tooLate` and `ignored` only to the tapper. Used for feedback such as "Ana got it". |
 | `{ type: "error", message }` | A request that was refused, such as a non-host pressing start |
 
@@ -171,7 +191,8 @@ src/
       generator.js        DeckGenerator: builds decks (projective plane); MAX_CARDS; difficulty LEVELS
       checker.js          SetChecker: the four deck checks
       game.js             solo rules (SoloGame) and the wrong-tap limits
-      multiplayer.js      multiplayer rules: createGame, applyTap, standings, viewFor
+      multiplayer.js      multiplayer rules: createGame, applyTap, standings, viewFor; end-of-game stats and badges
+      verdicts.js         the deadpan end-of-game one-liners
       symbols.js          the emoji set
   server/
     index.js              Worker: /api routes
@@ -210,6 +231,10 @@ The JavaScript tests cover:
 - simultaneous taps
 - both multiplayer modes to the end
 - that a player's view never contains another player's card
+- match times, game length, streaks and badges, including games saved before times were recorded
+- which one-liner each finishing position gets, and that every phone picks the same one
+- whether a forfeit came from leaving or from wrong taps
+- that a game can start only when at least two players are in and all are ready
 
 The Worker and GameRoom have no automated tests yet; they have been exercised by hand with two simulated phones against `npm run dev`.
 
@@ -243,4 +268,4 @@ The current deployment is at https://dobble.dobble.workers.dev. The deployed app
 - **Fonts.** The home screen loads Fredoka and Nunito from Google Fonts. Without a connection to Google it falls back to the system's rounded font.
 
 <!-- readme-synced: see AGENTS.md "Keeping the README current". Updated by the update-readme skill. -->
-<!-- readme-synced-commit: 547ff5f -->
+<!-- readme-synced-commit: 63408e4 -->

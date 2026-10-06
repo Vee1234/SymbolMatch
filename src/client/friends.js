@@ -4,8 +4,9 @@
 
 import { LEVELS, levelName } from "./shared/generator.js";
 import { WRONG_TAPS_ALLOWED_PER_GAME } from "./shared/game.js";
-import { MULTIPLAYER_MODES, MIN_PLAYERS } from "./shared/multiplayer.js";
-import { $, show, store, toast, segmented, renderPips } from "./ui.js";
+import { MULTIPLAYER_MODES, MIN_PLAYERS, readiness } from "./shared/multiplayer.js";
+import { verdictFor } from "./shared/verdicts.js";
+import { $, show, store, toast, segmented, renderPips, formatTime } from "./ui.js";
 import { renderCard, replayAnimation, onSymbolTap, clearLayouts } from "./cards.js";
 
 const MODE_INFO = {
@@ -59,6 +60,10 @@ export function initFriends(options) {
 
   $("shareRoom").addEventListener("click", shareRoom);
   $("startRoom").addEventListener("click", () => send({ type: "start" }));
+  $("readyToggle").addEventListener("click", () => {
+    const me = state?.players.find(p => p.id === playerId);
+    if (me) send({ type: "ready", ready: !me.ready });
+  });
   $("leaveRoom").addEventListener("click", leaveRoom);
   $("roomAgain").addEventListener("click", () => send({ type: "again" }));
   $("roomLeave").addEventListener("click", leaveRoom);
@@ -231,7 +236,8 @@ function renderLobby() {
   const isHost = state.hostId === playerId;
   const { mode, symbolsPerCard } = state.settings;
   const inProgress = state.phase === "playing";
-  const connectedCount = state.players.filter(p => p.connected).length;
+  const { players: connectedCount, waitingFor, canStart } = readiness(state.players);
+  const me = state.players.find(p => p.id === playerId);
   clearLayouts();
   shownCentreSeq = null;
 
@@ -241,6 +247,12 @@ function renderLobby() {
     li.className = p.connected ? "" : "offline";
     const tags = [p.id === state.hostId && "host", p.id === playerId && "you", !p.connected && "offline"].filter(Boolean);
     li.textContent = p.name;
+    if (p.connected && !inProgress) {
+      const mark = document.createElement("span");
+      mark.className = p.ready ? "ready-mark ready" : "ready-mark";
+      mark.textContent = p.ready ? "✓ Ready" : "Not ready";
+      li.append(mark);
+    }
     if (tags.length) {
       const span = document.createElement("span");
       span.className = "tags";
@@ -256,12 +268,21 @@ function renderLobby() {
     value => send({ type: "settings", symbolsPerCard: value }), { disabled: !isHost });
   $("roomModeHint").textContent = MODE_INFO[mode].hint;
 
+  $("readyToggle").hidden = inProgress;
+  $("readyToggle").setAttribute("aria-pressed", String(Boolean(me?.ready)));
+  $("readyToggle").textContent = me?.ready ? "✓ Ready (tap to undo)" : "I'm ready";
+
+  // Start stays greyed out until at least two players are in and every one of them is ready.
   $("startRoom").hidden = !isHost || inProgress;
-  $("startRoom").disabled = connectedCount < MIN_PLAYERS;
-  $("startRoom").textContent = connectedCount < MIN_PLAYERS ? "Waiting for another player…" : `Start game with ${connectedCount}`;
+  $("startRoom").disabled = !canStart;
+  $("startRoom").textContent = connectedCount < MIN_PLAYERS ? "Waiting for another player…"
+    : waitingFor.length ? `Waiting for ${waitingFor.length} ${waitingFor.length === 1 ? "player" : "players"} to be ready…`
+    : `Start game with ${connectedCount}`;
   $("lobbyWaiting").textContent = inProgress
     ? "A game is in progress. You'll be in the next round."
-    : isHost ? "Share the link, then start when everyone's in." : `Waiting for ${nameOf(state.hostId)} to start the game.`;
+    : !me?.ready ? "Tap I'm ready when you're set. The game starts once everyone is."
+    : isHost ? (canStart ? "Everyone's ready. Start when you like." : "Share the link, then start once everyone's ready.")
+    : `Waiting for ${nameOf(state.hostId)} to start the game.`;
   show("lobby");
 }
 
@@ -317,16 +338,50 @@ function renderResults() {
     ? (winners.length > 1 ? "You tied for first!" : "You win!")
     : winners.length ? `${winners.map(s => nameOf(s.id)).join(" & ")} ${winners.length > 1 ? "win" : "wins"}` : "Game over";
 
+  // The summary is missing only for a game that started before this version was deployed.
+  const summary = game.summary;
+  const statsOf = id => summary?.players.find(p => p.id === id);
+  const badgesOf = id => (summary?.badges ?? []).filter(b => b.playerIds.includes(id)).map(b => b.emoji).join("");
+  const line = s => verdictFor(s, game.standings, summary?.startedAt ?? "");
+  const mine = game.standings.find(s => s.id === playerId);
+  $("roomVerdict").textContent = mine ? line(mine) : "";
+  $("roomDuration").textContent = summary?.durationMs != null ? `The game lasted ${formatTime(summary.durationMs)}` : "";
+
   $("standings").replaceChildren(...game.standings.map(s => {
     const li = document.createElement("li");
     li.className = s.id === playerId ? "you" : "";
     const detail = s.forfeited ? "forfeited"
       : tower ? `${s.won} ${s.won === 1 ? "card" : "cards"}`
       : s.cardsLeft === 0 ? "no cards left" : `${s.cardsLeft} left`;
-    li.innerHTML = `<span class="place"></span><span class="who"></span><span class="detail"></span>`;
+    li.innerHTML = `<span class="place"></span><span class="who"></span><span class="detail"></span><p class="stats"></p>`;
     li.querySelector(".place").textContent = s.place;
     li.querySelector(".who").textContent = nameOf(s.id);
+    const badges = badgesOf(s.id);
+    if (badges) {
+      const span = document.createElement("span");
+      span.className = "who-badges";
+      span.textContent = badges;
+      li.querySelector(".who").append(span);
+    }
     li.querySelector(".detail").textContent = detail;
+    li.querySelector(".stats").textContent = statsLine(statsOf(s.id));
+    if (s.id !== playerId) {
+      const p = document.createElement("p");
+      p.className = "line";
+      p.textContent = line(s);
+      li.append(p);
+    }
+    return li;
+  }));
+
+  const awarded = summary?.badges ?? [];
+  $("roomBadgesSection").hidden = awarded.length === 0;
+  $("roomBadges").replaceChildren(...awarded.map(b => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="badge-emoji" aria-hidden="true"></span><span class="badge-name"></span><span class="badge-who"></span>`;
+    li.querySelector(".badge-emoji").textContent = b.emoji;
+    li.querySelector(".badge-name").textContent = `${b.name}: ${b.playerIds.map(id => id === playerId ? "you" : nameOf(id)).join(" & ")}`;
+    li.querySelector(".badge-who").textContent = b.description;
     return li;
   }));
 
@@ -337,6 +392,16 @@ function renderResults() {
   shownCentreSeq = null;
   shownYourCard = "";
   show("roomResults");
+}
+
+// "Average 1.8s · fastest 0.9s · 2 wrong taps" for one player's summary row.
+function statsLine(stats) {
+  if (!stats) return "";
+  const parts = stats.matches
+    ? [`average ${formatTime(stats.averageMs)}`, `fastest ${formatTime(stats.fastestMs)}`]
+    : ["no matches"];
+  parts.push(`${stats.wrongTotal} wrong ${stats.wrongTotal === 1 ? "tap" : "taps"}`);
+  return parts.join(" · ").replace(/^./, c => c.toUpperCase());
 }
 
 /* ---------- playing ---------- */

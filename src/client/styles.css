@@ -373,12 +373,16 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   font-weight: 700;
 }
 .player-list li.offline { opacity: .5; }
-.player-list .tags { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+.player-list .tags { margin-left: auto; color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+.player-list .ready-mark { order: 1; color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+.player-list .ready-mark.ready { color: var(--good); }
+.ready-toggle[aria-pressed="true"] { border-color: var(--good); background: var(--good); color: var(--card-ink); }
 .seg-2 { grid-template-columns: repeat(2, 1fr); }
 .seg-2 button { font-size: 16px; }
 .seg button:disabled { cursor: default; }
 .seg button:disabled:not([aria-checked="true"]) { opacity: .45; }
-.primary:disabled { opacity: .55; cursor: default; }
+/* Greyed out, e.g. Start while someone isn't ready yet. */
+.primary:disabled { background: var(--felt-line); color: var(--ink-soft); cursor: default; }
 
 #roomPlay { --card-size: min(86vw, calc((100svh - 196px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 2), 420px); }
 .opponents {
@@ -421,7 +425,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   align-items: center;
   gap: 12px;
   min-height: 50px;
-  padding: 0 16px;
+  padding: 10px 16px;
   border-radius: 14px;
   background: var(--felt-raised);
   font-size: 18px;
@@ -430,6 +434,21 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 .standings .place { font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
 .standings .who { font-weight: 700; }
 .standings .detail { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.standings .stats, .standings .line { grid-column: 2 / -1; margin: -6px 0 0; color: var(--ink-soft); font-size: 14px; }
+.standings .stats { font-variant-numeric: tabular-nums; }
+.standings .line { margin: -4px 0 10px; font-style: italic; }
+.standings .who-badges { margin-left: 6px; }
+
+/* End of a friends game: the deadpan line for you, then the badges. */
+.verdict { margin: 0; font-size: 19px; font-weight: 700; font-style: italic; line-height: 1.35; }
+.verdict:empty { display: none; }
+.badges { display: grid; gap: 8px; }
+.badges[hidden] { display: none; }
+.badge-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.badge-list li { display: grid; grid-template-columns: 2em 1fr; gap: 2px 10px; align-items: center; padding: 10px 14px; border-radius: 14px; background: var(--felt-raised); }
+.badge-list .badge-emoji { grid-row: span 2; font-size: 26px; text-align: center; }
+.badge-list .badge-name { font-weight: 800; }
+.badge-list .badge-who { color: var(--ink-soft); font-size: 14px; }
 
 /* ---------- results ---------- */
 .results { max-width: 34rem; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
