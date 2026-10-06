@@ -1,0 +1,14 @@
+# Only what the deploy image needs: package files, src/, tests/js and wrangler.jsonc.
+.git
+.github
+.claude
+.wrangler
+node_modules
+__pycache__
+*.py
+tests/*.py
+tests/plane_tracer.html
+docs
+*.md
+Dockerfile
+.dockerignore

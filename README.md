@@ -174,12 +174,19 @@ src/
     room.js               GameRoom Durable Object
 tests/
   js/                     node --test suites for everything in shared/
+    generator.test.js     deck building, capping, rejected inputs
+    checker.test.js       the four checks against valid and broken q = 2 decks
+    game.test.js          solo rules and the emoji set
+    multiplayer.test.js   both multiplayer modes, lockouts, forfeits, stale taps
   TestDeckGenerator.py    Python reference tests
   plane_tracer.html       step-by-step visualiser of the deck algorithm
 docs/                     algorithm notes and game requirements
 .claude/                  Claude Code tooling: skills, the simulator-syncer agent, the check-sync hook
 AGENTS.md                 instructions for AI coding agents (CLAUDE.md imports it)
 wrangler.jsonc            Cloudflare config: assets, /api routing, the GameRoom Durable Object
+Dockerfile                the deploy image: runs the tests, then wrangler deploy
+.dockerignore             keeps the image to package files, src/, tests/js and wrangler.jsonc
+.github/workflows/        deploy.yml: test and deploy on every push to master
 *.py                      Python reference implementation
 ```
 
@@ -203,12 +210,23 @@ The Worker and GameRoom have no automated tests yet; they have been exercised by
 
 ## Deploying
 
+**Automatically.** Every push to `master`, including merging a pull request or feature branch, runs `.github/workflows/deploy.yml`:
+
+1. builds the deploy image from the `Dockerfile` (Node 24 and the exact dependencies in `package-lock.json`)
+2. runs `npm test` inside it, and stops if anything fails
+3. runs `npx wrangler deploy` inside it
+4. publishes the image to GitHub Container Registry as `ghcr.io/<owner>/<repo>-deploy`, tagged with the commit and `latest`
+
+Deploys run one at a time. The workflow can also be started by hand from the Actions tab. It needs two repository secrets: `CLOUDFLARE_API_TOKEN` (a token made with Cloudflare's "Edit Cloudflare Workers" template) and `CLOUDFLARE_ACCOUNT_ID`. The token is passed to the container when it runs and is never stored in the image.
+
+**By hand.**
+
 ```sh
 npx wrangler login   # once
 npm run deploy       # prints https://dobble.<your-subdomain>.workers.dev
 ```
 
-The deployed app runs on Cloudflare; nothing needs to stay running on your computer. Editing files doesn't change the live site until you deploy again. Casual use should fit Cloudflare's free Workers plan; check the current Workers and Durable Objects limits before sharing widely.
+The current deployment is at https://dobble.dobble.workers.dev. The deployed app runs on Cloudflare; nothing needs to stay running on your computer. Editing files doesn't change the live site until you deploy again. Casual use should fit Cloudflare's free Workers plan; check the current Workers and Durable Objects limits before sharing widely.
 
 ## Design decisions and limits
 
@@ -219,4 +237,4 @@ The deployed app runs on Cloudflare; nothing needs to stay running on your compu
 - **Rooms expire** after 24 hours without activity.
 
 <!-- readme-synced: see AGENTS.md "Keeping the README current". Updated by the update-readme skill. -->
-<!-- readme-synced-commit: 8482994 -->
+<!-- readme-synced-commit: 795f386 -->
