@@ -1,29 +1,69 @@
-import { DeckGenerator, SUPPORTED_SYMBOLS_PER_CARD, MAX_CARDS, deckSizeFor } from "./shared/generator.js";
+import { DeckGenerator, LEVELS, levelName, MAX_CARDS, deckSizeFor } from "./shared/generator.js";
 import { SoloGame, MODES, WRONG_TAPS_ALLOWED_PER_GAME } from "./shared/game.js";
 import { pickEmoji } from "./shared/symbols.js";
 import { $, show, store, toast, formatTime, segmented, renderPips } from "./ui.js";
 import { renderCard, replayAnimation, onSymbolTap, clearLayouts } from "./cards.js";
-import { initFriends } from "./friends.js";
+import { initFriends, createRoomAtLevel, joinWithCode } from "./friends.js";
 
-const MODE_NAMES = { [MODES.clock]: "Beat the clock", [MODES.race]: "Race the deck" };
+const MODE_INFO = {
+  [MODES.clock]: { name: "Beat the clock", desc: "As many matches as you can in 60 seconds." },
+  [MODES.race]: { name: "Race the deck", desc: "Get through the whole deck as fast as you can." },
+};
+const LEVEL_EMOJI = { easy: "🍎", medium: "🍎🍋", hard: "🍎🍋🍇" };
 
-/* ---------- settings ---------- */
+/* ---------- home ---------- */
 
 let symbolsPerCard = Number(store.get("symbolsPerCard"));
-if (!SUPPORTED_SYMBOLS_PER_CARD.includes(symbolsPerCard)) symbolsPerCard = 8;
+if (!LEVELS.some(level => level.symbolsPerCard === symbolsPerCard)) symbolsPerCard = 8;
+let soloMode = store.get("soloMode") === MODES.race ? MODES.race : MODES.clock;
+let picking = null; // "solo" or "friends" while the card shows the level choice
 
-const cardsInDeck = perCard => Math.min(deckSizeFor(perCard - 1), MAX_CARDS);
+// The big card on the home screen flips between the two options and the level choice.
+function openPick(kind) {
+  picking = kind;
+  $("soloModes").hidden = kind !== "solo";
+  $("pickGo").textContent = kind === "solo" ? "Play" : "Create";
+  renderPick();
+  $("cardHome").hidden = true;
+  $("cardPick").hidden = false;
+  $("cardPick").querySelector('[aria-checked="true"]').focus();
+}
 
-function renderSettings() {
-  segmented($("sizePicker"), SUPPORTED_SYMBOLS_PER_CARD.map(n => ({ value: n, label: n })), symbolsPerCard, n => {
-    symbolsPerCard = n;
-    store.set("symbolsPerCard", n);
-    renderSettings();
+function closePick() {
+  const from = picking === "solo" ? "pickSolo" : "pickFriends";
+  picking = null;
+  $("cardPick").hidden = true;
+  $("cardHome").hidden = false;
+  $(from).focus();
+}
+
+function renderPick() {
+  const modes = Object.entries(MODE_INFO).map(([value, info]) => ({ value, label: info.name }));
+  segmented($("modePicker"), modes, soloMode, value => {
+    soloMode = value;
+    store.set("soloMode", value);
+    renderPick();
+    $("modePicker").querySelector('[aria-checked="true"]').focus();
   });
-  $("sizeHint").textContent = `${symbolsPerCard} symbols per card · ${cardsInDeck(symbolsPerCard)}-card deck`;
-  for (const el of document.querySelectorAll("[data-best]")) {
-    el.textContent = bestText(el.dataset.best, symbolsPerCard);
-  }
+  $("modeDesc").textContent = MODE_INFO[soloMode].desc;
+
+  $("levelPicker").replaceChildren(...LEVELS.map(level => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `level level-${level.id}`;
+    button.setAttribute("role", "radio");
+    button.setAttribute("aria-checked", level.symbolsPerCard === symbolsPerCard);
+    button.innerHTML = `<span class="level-emoji" aria-hidden="true"></span><span></span>`;
+    button.firstChild.textContent = LEVEL_EMOJI[level.id];
+    button.lastChild.textContent = level.name;
+    button.addEventListener("click", () => {
+      symbolsPerCard = level.symbolsPerCard;
+      store.set("symbolsPerCard", symbolsPerCard);
+      renderPick();
+      $("levelPicker").querySelector('[aria-checked="true"]').focus();
+    });
+    return button;
+  }));
 }
 
 /* ---------- best scores ---------- */
@@ -121,7 +161,7 @@ function finish() {
   const g = game;
   game = null;
 
-  $("resultMode").textContent = `${MODE_NAMES[mode]} · ${symbolsPerCard} per card`;
+  $("resultMode").textContent = `${MODE_INFO[mode].name} · ${levelName(symbolsPerCard)}`;
   const stats = [];
   let best = "";
   let isNewBest = false;
@@ -162,16 +202,29 @@ function finish() {
 function goHome() {
   cancelAnimationFrame(frame);
   game = null;
-  renderSettings();
+  picking = null;
+  $("cardPick").hidden = true;
+  $("cardHome").hidden = false;
   show("home");
 }
 
-for (const button of document.querySelectorAll("button[data-mode]")) {
-  button.addEventListener("click", () => startGame(button.dataset.mode));
-}
+$("pickSolo").addEventListener("click", () => openPick("solo"));
+$("pickFriends").addEventListener("click", () => openPick("friends"));
+$("pickBack").addEventListener("click", closePick);
+$("pickGo").addEventListener("click", () => {
+  if (picking === "solo") startGame(soloMode);
+  else createRoomAtLevel(symbolsPerCard);
+});
+$("homeJoin").addEventListener("submit", event => {
+  event.preventDefault();
+  joinWithCode($("homeCode").value);
+});
+// The tutorial is planned but not built yet.
+$("tutorial").addEventListener("click", () => toast("The tutorial is coming soon"));
+// Safari on iPhone only shows :active (the press animation) on pages that listen for touches.
+document.addEventListener("touchstart", () => {}, { passive: true });
 $("quit").addEventListener("click", goHome);
 $("again").addEventListener("click", () => startGame(mode));
 $("toHome").addEventListener("click", goHome);
 
-renderSettings();
 initFriends({ goHome });

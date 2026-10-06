@@ -4,43 +4,62 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#16312c">
-  <title>Dobble</title>
+  <title>Symbolic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@600;700;800&display=swap">
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
   <!-- ========== Solo ========== -->
 
-  <main id="home" class="screen home">
-    <header class="brand">
-      <h1>Dobble</h1>
-      <p>Every two cards share exactly one symbol. Spot it first.</p>
-    </header>
+  <main id="home" class="screen landing">
+    <div class="bubbles" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
 
-    <section class="panel" aria-labelledby="sizeLabel">
-      <h2 class="label" id="sizeLabel">Symbols per card</h2>
-      <div class="seg" id="sizePicker" role="radiogroup" aria-labelledby="sizeLabel"></div>
-      <p class="hint" id="sizeHint"></p>
-    </section>
+    <div class="landing-inner">
+      <button type="button" class="tutorial" id="tutorial"><span aria-hidden="true">🎓</span>New here? Play the tutorial</button>
 
-    <section class="modes" aria-label="Game modes">
-      <button type="button" class="mode" data-mode="clock">
-        <span class="mode-name">Beat the clock</span>
-        <span class="mode-desc">As many matches as you can in 60 seconds.</span>
-        <span class="mode-best" data-best="clock"></span>
-      </button>
-      <button type="button" class="mode" data-mode="race">
-        <span class="mode-name">Race the deck</span>
-        <span class="mode-desc">Get through the whole deck as fast as you can.</span>
-        <span class="mode-best" data-best="race"></span>
-      </button>
-      <button type="button" class="mode mode-friends" id="openFriends">
-        <span class="mode-name">Play with friends</span>
-        <span class="mode-desc">Share a link and play on your own phones, in the same room or apart.</span>
-      </button>
-    </section>
+      <h1 class="wordmark">Symbolic</h1>
 
-    <p class="rules">One wrong tap on a card is allowed. A second wrong tap locks you out of that card. Six wrong taps in a game and you forfeit.</p>
+      <form class="join" id="homeJoin">
+        <h2><span aria-hidden="true">🔑</span>Join a game</h2>
+        <label class="visually-hidden" for="homeCode">Room code</label>
+        <div class="join-line">
+          <input class="home-code" id="homeCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE">
+          <button type="submit" class="go" aria-label="Join game">→</button>
+        </div>
+      </form>
+
+      <!-- The settings live inside a big round card, like a symbol card. -->
+      <section class="symbol-card" aria-label="Start a game">
+        <div class="face" id="cardHome">
+          <span class="dot dot-a" aria-hidden="true"></span>
+          <span class="dot dot-b" aria-hidden="true"></span>
+          <button type="button" class="option option-solo" id="pickSolo">
+            <span class="option-emoji" aria-hidden="true">🎯</span><span>Play solo<br>game</span>
+          </button>
+          <button type="button" class="option option-friends" id="pickFriends">
+            <span class="option-emoji" aria-hidden="true">🎉</span><span>Play with<br>friends</span>
+          </button>
+        </div>
+
+        <div class="face pick" id="cardPick" hidden>
+          <div class="solo-modes" id="soloModes">
+            <div class="toggle" id="modePicker" role="radiogroup" aria-label="Game"></div>
+            <p class="mode-desc" id="modeDesc" aria-live="polite"></p>
+          </div>
+          <h2 class="pick-title" id="pickTitle">Select your level</h2>
+          <div class="levels" id="levelPicker" role="radiogroup" aria-labelledby="pickTitle"></div>
+          <div class="pick-actions">
+            <button type="button" class="pill" id="pickBack">Back</button>
+            <button type="button" class="pill pill-go" id="pickGo">Play</button>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <main id="play" class="screen play" hidden>
@@ -112,7 +131,7 @@
       <h2 class="label">Game</h2>
       <div class="seg seg-2" id="roomModePicker" role="radiogroup"></div>
       <p class="hint" id="roomModeHint"></p>
-      <h2 class="label">Symbols per card</h2>
+      <h2 class="label">Level</h2>
       <div class="seg" id="roomSizePicker" role="radiogroup"></div>
     </section>
 

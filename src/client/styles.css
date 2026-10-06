@@ -54,7 +54,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 .brand p { margin: 0; color: var(--ink-soft); font-size: 17px; text-wrap: balance; }
 
 .panel { display: flex; flex-direction: column; gap: 10px; }
-.seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .seg button {
   min-height: 48px;
   border: 1px solid var(--felt-line);
@@ -67,24 +67,153 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 .seg button[aria-checked="true"] { background: var(--gold); border-color: var(--gold); color: var(--card-ink); }
 .hint { margin: 0; color: var(--ink-soft); font-size: 14px; }
 
-.modes { display: flex; flex-direction: column; gap: 10px; }
-.mode {
-  display: grid;
-  gap: 4px;
-  text-align: left;
-  padding: 16px 18px;
-  border: 1px solid var(--felt-line);
-  border-radius: 18px;
-  background: var(--felt-raised);
+/* ---------- landing ---------- */
+/* The home screen has its own light look: white, light blue and baby pink, built from circles
+   (docs/UiRequirements.md). Sizes inside the big card use cqw so it scales with the card. */
+.landing {
+  --sky: #ddf0fb;
+  --blue: #bfe3f7;
+  --blue-pale: #e6f4fc;
+  --blue-deep: #2f6fa3;
+  --pink: #f9c9d9;
+  --pink-pale: #fde6ee;
+  --pink-deep: #f4a7c0;
+  --navy: #1e2b4a;
+  --navy-soft: #3e4c6b;
+  --display: Fredoka, var(--font);
+  color-scheme: light;
+  position: relative;
+  overflow: hidden;
+  padding-top: calc(env(safe-area-inset-top) + 40px);
+  background: var(--sky);
+  color: var(--navy);
+  font-family: Nunito, var(--font);
 }
-button.mode:active { transform: scale(.985); }
-.mode-name { font-size: 21px; font-weight: 800; }
-.mode-desc { color: var(--ink-soft); font-size: 15px; }
-.mode-best { font-size: 14px; font-weight: 700; color: var(--gold); min-height: 1em; }
-.mode-best:empty { display: none; }
-.mode-soon { opacity: .55; }
-.mode-soon .mode-best { color: var(--ink-soft); }
-.rules { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.5; }
+.landing button:focus-visible, .landing input:focus-visible { outline: 3px solid var(--navy); outline-offset: 3px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.bubbles span { position: absolute; border-radius: 50%; }
+.bubbles span:nth-child(1) { width: 220px; height: 220px; top: 110px; left: -120px; background: rgba(249, 201, 217, .7); }
+.bubbles span:nth-child(2) { width: 160px; height: 160px; top: 150px; right: -70px; background: rgba(255, 255, 255, .55); }
+.bubbles span:nth-child(3) { width: 46px; height: 46px; top: 196px; right: 34px; border: 3px solid #fff; }
+.bubbles span:nth-child(4) { width: 18px; height: 18px; top: 236px; left: 30px; background: var(--pink-deep); }
+.bubbles span:nth-child(5) { width: 280px; height: 280px; bottom: -150px; right: -90px; background: rgba(249, 201, 217, .55); }
+.bubbles span:nth-child(6) { width: 200px; height: 200px; bottom: -60px; left: -70px; background: rgba(255, 255, 255, .6); }
+.bubbles span:nth-child(7) { width: 90px; height: 90px; bottom: 90px; left: 38%; border: 3px solid rgba(255, 255, 255, .9); }
+.bubbles span:nth-child(8) { width: 26px; height: 26px; bottom: 70px; left: 28%; background: var(--blue); }
+.bubbles span:nth-child(9) { width: 14px; height: 14px; bottom: 150px; right: 60px; background: #fff; }
+
+.landing-inner {
+  position: relative;
+  max-width: 26rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.tutorial {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pink);
+  font-size: clamp(15px, 4.6vw, 18px);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.wordmark { margin: 6px 0 0; font: 700 clamp(56px, 19vw, 76px)/1 var(--display); letter-spacing: .01em; }
+
+.join { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.join h2 { margin: 0; display: flex; align-items: center; gap: 8px; font: 600 20px var(--display); }
+.join-line { display: flex; gap: 10px; width: 100%; max-width: 300px; }
+.home-code {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  padding: 0 16px;
+  border: 2px solid var(--pink-deep);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--navy);
+  text-align: center;
+  font: 800 22px Nunito, var(--font);
+  letter-spacing: .3em;
+  text-transform: uppercase;
+}
+.home-code::placeholder { color: #8a97ae; }
+.go { flex: none; width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--blue-deep); color: #fff; font-size: 22px; font-weight: 800; }
+
+.symbol-card {
+  position: relative;
+  width: min(340px, 100%);
+  aspect-ratio: 1;
+  margin-top: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 10px rgba(255, 255, 255, .5), 0 16px 40px rgba(30, 43, 74, .12);
+  container-type: size;
+}
+.face { position: absolute; inset: 0; }
+.dot { position: absolute; aspect-ratio: 1; border-radius: 50%; }
+.dot-a { left: 20.6%; bottom: 12.9%; width: 20.6%; background: rgba(191, 227, 247, .5); }
+.dot-b { left: 47%; top: 7.6%; width: 8.8%; background: rgba(249, 201, 217, .6); }
+.option {
+  position: absolute;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1cqw;
+  border: 0;
+  border-radius: 50%;
+  font: 600 5.6cqw/1.1 var(--display);
+  text-align: center;
+}
+.option-emoji { font-size: 12.9cqw; line-height: 1; }
+.option-solo { left: 10%; top: 13.5%; width: 44%; background: var(--pink); rotate: -8deg; }
+.option-friends { right: 8.8%; top: 39.4%; width: 41%; background: var(--blue); rotate: 10deg; font-size: 5.3cqw; }
+.option-friends .option-emoji { font-size: 11.8cqw; }
+
+.pick { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.4cqw; }
+.solo-modes { display: flex; flex-direction: column; align-items: center; gap: 1.8cqw; }
+.toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 72cqw; padding: 3px; border-radius: 999px; background: var(--pink-pale); }
+.toggle button { min-height: 36px; padding: 0 2px; border: 0; border-radius: 999px; background: transparent; font-size: max(11px, 3.8cqw); font-weight: 800; white-space: nowrap; }
+.toggle button[aria-checked="true"] { background: var(--pink-deep); }
+.mode-desc { margin: 0; width: 68cqw; min-height: 2.6em; color: var(--navy-soft); font-size: max(12px, 3.8cqw); line-height: 1.3; text-align: center; }
+.pick-title { margin: 0; font: 600 max(15px, 5.3cqw) var(--display); }
+.levels { display: flex; align-items: center; gap: 2.4cqw; }
+.level {
+  flex: none;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  font: 600 max(12px, 4.4cqw) var(--display);
+}
+.level[aria-checked="true"] { border-color: var(--blue-deep); }
+.level-easy { width: 18.2cqw; background: var(--pink-pale); font-size: max(12px, 4cqw); }
+.level-medium { width: 21.2cqw; background: var(--blue-pale); }
+.level-hard { width: 24.7cqw; background: #edeff5; }
+.level-emoji { font-size: 4.7cqw; line-height: 1.2; }
+.pick-actions { display: flex; gap: 10px; }
+.pill { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: #f1f4f9; font-size: 16px; font-weight: 700; }
+.pill-go { padding: 0 22px; background: var(--blue-deep); color: #fff; font-weight: 800; }
+
+/* Buttons grow a little when pressed, and spring back. */
+.landing button { color: var(--navy); transition: scale .18s cubic-bezier(.34, 1.56, .64, 1); }
+.landing .go, .landing .pill-go { color: #fff; }
+.landing button:active { scale: 1.1; transition-duration: .08s; }
+@media (hover: hover) { .landing button:hover { scale: 1.04; } }
 
 /* ---------- play ---------- */
 .play {
@@ -309,5 +438,7 @@ button.mode:active { transform: scale(.985); }
 @keyframes pulse { to { border-color: transparent; } }
 
 @media (prefers-reduced-motion: reduce) {
+  .landing button { transition: none; }
+  .landing button:active, .landing button:hover { scale: none; }
   .card.deal, .card.locked, .symbol.wrong, .symbol.right, .pips.last-chance .pip:not(.used) { animation: none; }
 }

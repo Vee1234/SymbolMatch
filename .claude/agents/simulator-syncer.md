@@ -1,6 +1,6 @@
 ---
 name: simulator-syncer
-description: Background worker that updates the Dobble Plane Tracer (tests/plane_tracer.html) to match the current docs/CardGenerationAlgorithm.txt and republishes it. Spawn it whenever the algorithm file has changed since the last sync, such as when the check-sync hook reports it, after you edit the algorithm file, or when the user asks to sync or update the simulator. Delegate to it instead of syncing in the main conversation, so the user and the main agent can keep working while it runs.
+description: Background worker that updates the Symbolic Plane Tracer (tests/plane_tracer.html) to match the current docs/CardGenerationAlgorithm.txt and republishes it. Spawn it whenever the algorithm file has changed since the last sync, such as when the check-sync hook reports it, after you edit the algorithm file, or when the user asks to sync or update the simulator. Delegate to it instead of syncing in the main conversation, so the user and the main agent can keep working while it runs.
 tools: Read, Edit, Write, Bash, Grep, Glob, Artifact
 model: inherit
 ---
