@@ -404,7 +404,7 @@ function startCountdown(game) {
       number.className = "count";
       number.textContent = label;
       $("countdownCircle").replaceChildren(number);
-      $("countdownCircle").classList.toggle("go", label === "Go!");
+      $("countdownCircle").classList.toggle("is-go", label === "Go!");
       $("countdownHeading").textContent = label === "Go!" ? "Symbolic!" : "Get ready!";
     }
     countdown.timer = setTimeout(tick, 50);

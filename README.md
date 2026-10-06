@@ -2,6 +2,8 @@
 
 Symbolic is a spot-the-match card game, based on Dobble (also sold as Spot It!), that people play on their phones, alone against a timer or together from anywhere by sharing a link. Every two cards share exactly one symbol; the first player to spot it wins the round.
 
+**Play it:** https://dobble.dobble.workers.dev (the `master` branch; every push to `master` deploys there).
+
 It runs on Cloudflare Workers: one deploy serves the app and hosts the multiplayer game rooms.
 
 > Dobble is a trademark of Asmodee; this project is not affiliated with it.
@@ -273,4 +275,4 @@ The current deployment is at https://dobble.dobble.workers.dev. The deployed app
 - **Fonts.** The app loads Fredoka and Nunito from Google Fonts. Without a connection to Google it falls back to the system's rounded font.
 
 <!-- readme-synced: see AGENTS.md "Keeping the README current". Updated by the update-readme skill. -->
-<!-- readme-synced-commit: 77fff75 -->
+<!-- readme-synced-commit: 7aa9e33 -->
