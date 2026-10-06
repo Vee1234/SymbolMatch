@@ -1,8 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="48" fill="#bfe3f7"/>
-  <g transform="translate(50 50) scale(.8) translate(-50 -50)">
-    <path d="M 66.9 25.8 A 18 18 0 1 0 50 50 A 18 18 0 1 1 33.1 74.2" fill="none" stroke="#000" stroke-width="13" stroke-linecap="round"/>
-    <circle cx="50" cy="32" r="8" fill="#f4a7c0"/>
-    <circle cx="50" cy="68" r="8" fill="#fff"/>
+  <defs>
+    <clipPath id="card"><circle cx="48" cy="48" r="43"/></clipPath>
+    <path id="s" d="M 70.7 25.8 A 22 18 0 1 0 50 50 A 22 18 0 1 1 29.3 74.2" fill="none" stroke-width="16" stroke-linecap="round"/>
+  </defs>
+  <circle cx="54" cy="54" r="43" fill="#000"/>
+  <circle cx="48" cy="48" r="43" fill="#fff"/>
+  <g clip-path="url(#card)">
+    <circle cx="14" cy="20" r="22" fill="#f9c9d9"/>
+    <circle cx="84" cy="80" r="26" fill="#bfe3f7"/>
+    <circle cx="82" cy="20" r="8" fill="#7fbfe6"/>
   </g>
+  <circle cx="48" cy="48" r="43" fill="none" stroke="#000" stroke-width="4"/>
+  <use href="#s" stroke="#f4a7c0" transform="translate(52 52) rotate(-12) scale(.52) translate(-50 -50)"/>
+  <use href="#s" stroke="#000" transform="translate(48 48) rotate(-12) scale(.52) translate(-50 -50)"/>
 </svg>

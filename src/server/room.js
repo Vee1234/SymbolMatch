@@ -9,7 +9,7 @@ import { DurableObject } from "cloudflare:workers";
 import { DeckGenerator, SUPPORTED_SYMBOLS_PER_CARD, MAX_CARDS, deckSizeFor } from "../client/shared/generator.js";
 import { pickEmoji } from "../client/shared/symbols.js";
 import {
-  MULTIPLAYER_MODES, MAX_PLAYERS, MIN_PLAYERS, createGame, applyTap, forfeitPlayer, viewFor,
+  MULTIPLAYER_MODES, MAX_PLAYERS, MIN_PLAYERS, COUNTDOWN_MS, createGame, applyTap, forfeitPlayer, viewFor, readiness,
 } from "../client/shared/multiplayer.js";
 
 const MAX_NAME_LENGTH = 16;
@@ -32,7 +32,7 @@ export class GameRoom extends DurableObject {
     await this.save({
       code,
       hostId: null,
-      players: [], // { id, name }, in joining order
+      players: [], // { id, name, ready }, in joining order
       settings: { mode: MULTIPLAYER_MODES.tower, symbolsPerCard: 8 },
       phase: "lobby", // lobby | playing | ended
       game: null,
@@ -66,6 +66,7 @@ export class GameRoom extends DurableObject {
     const isHost = playerId === this.room.hostId;
     switch (message.type) {
       case "settings": return isHost ? this.changeSettings(message) : this.sendError(ws, "Only the host can change settings");
+      case "ready": return this.setReady(playerId, message.ready);
       case "start": return isHost ? this.start(ws) : this.sendError(ws, "Only the host can start the game");
       case "again": return isHost ? this.backToLobby() : this.sendError(ws, "Only the host can start another round");
       case "tap": return this.tap(playerId, message);
@@ -108,7 +109,7 @@ export class GameRoom extends DurableObject {
     } else if (room.players.length >= MAX_PLAYERS) {
       return this.sendError(ws, `This room is full (${MAX_PLAYERS} players)`);
     } else {
-      room.players.push({ id: playerId, name: cleanName });
+      room.players.push({ id: playerId, name: cleanName, ready: false });
     }
     room.hostId ??= playerId;
     ws.serializeAttachment({ playerId });
@@ -120,7 +121,7 @@ export class GameRoom extends DurableObject {
     const room = this.room;
     const inGame = room.phase !== "lobby" && room.game?.players[playerId];
     if (inGame) {
-      forfeitPlayer(room.game, playerId); // leaving mid-game counts as forfeiting
+      forfeitPlayer(room.game, playerId, Date.now()); // leaving mid-game counts as forfeiting
       if (room.game.status === "ended") room.phase = "ended";
     } else {
       room.players = room.players.filter(p => p.id !== playerId);
@@ -139,6 +140,18 @@ export class GameRoom extends DurableObject {
     if (room.phase !== "lobby") return;
     if (Object.values(MULTIPLAYER_MODES).includes(mode)) room.settings.mode = mode;
     if (SUPPORTED_SYMBOLS_PER_CARD.includes(symbolsPerCard)) room.settings.symbolsPerCard = symbolsPerCard;
+    // Everyone agreed to the old settings, so they confirm again for the new ones.
+    for (const p of room.players) p.ready = false;
+    await this.save(room);
+    this.broadcast();
+  }
+
+  async setReady(playerId, ready) {
+    const room = this.room;
+    if (room.phase !== "lobby") return;
+    const player = room.players.find(p => p.id === playerId);
+    if (!player) return;
+    player.ready = ready === true;
     await this.save(room);
     this.broadcast();
   }
@@ -150,12 +163,14 @@ export class GameRoom extends DurableObject {
     if (playerIds.length < MIN_PLAYERS) {
       return this.sendError(ws, `You need at least ${MIN_PLAYERS} players to start`);
     }
+    const { canStart } = readiness(room.players.map(p => ({ ...p, connected: this.isConnected(p.id) })));
+    if (!canStart) return this.sendError(ws, "Everyone has to be ready before the game can start");
 
     const q = room.settings.symbolsPerCard - 1;
     const symbolIds = Array.from({ length: deckSizeFor(q) }, (_, id) => id);
     const deck = new DeckGenerator(q, symbolIds).generate({ maxCards: MAX_CARDS });
     try {
-      room.game = createGame(deck, room.settings.mode, playerIds);
+      room.game = createGame(deck, room.settings.mode, playerIds, Date.now(), COUNTDOWN_MS);
     } catch (error) {
       return this.sendError(ws, error.message);
     }
@@ -168,7 +183,7 @@ export class GameRoom extends DurableObject {
   async tap(playerId, { symbol, centreSeq }) {
     const room = this.room;
     if (room.phase !== "playing") return;
-    const result = applyTap(room.game, playerId, symbol, centreSeq);
+    const result = applyTap(room.game, playerId, symbol, centreSeq, Date.now());
     if (result === "ignored" || result === "tooLate") {
       return this.sendTo(playerId, { type: "event", kind: result, playerId, symbol });
     }
@@ -183,6 +198,7 @@ export class GameRoom extends DurableObject {
     room.phase = "lobby";
     room.game = null;
     room.emoji = null;
+    for (const p of room.players) p.ready = false;
     await this.save(room);
     this.broadcast();
   }
@@ -217,9 +233,9 @@ export class GameRoom extends DurableObject {
       hostId: room.hostId,
       phase: room.phase,
       settings: room.settings,
-      players: room.players.map(p => ({ ...p, connected: this.isConnected(p.id, ignore) })),
+      players: room.players.map(p => ({ ...p, ready: p.ready === true, connected: this.isConnected(p.id, ignore) })),
       emoji: room.emoji,
-      game: room.game ? viewFor(room.game, playerId) : null,
+      game: room.game ? viewFor(room.game, playerId, Date.now()) : null,
     };
   }
 

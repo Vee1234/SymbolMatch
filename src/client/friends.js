@@ -4,8 +4,9 @@
 
 import { LEVELS, levelName } from "./shared/generator.js";
 import { WRONG_TAPS_ALLOWED_PER_GAME } from "./shared/game.js";
-import { MULTIPLAYER_MODES, MIN_PLAYERS } from "./shared/multiplayer.js";
-import { $, show, store, toast, segmented, renderPips } from "./ui.js";
+import { MULTIPLAYER_MODES, MIN_PLAYERS, readiness } from "./shared/multiplayer.js";
+import { verdictFor } from "./shared/verdicts.js";
+import { $, show, store, toast, segmented, renderPips, formatTime, buzz, slideCard } from "./ui.js";
 import { renderCard, replayAnimation, onSymbolTap, clearLayouts } from "./cards.js";
 
 const MODE_INFO = {
@@ -40,6 +41,9 @@ let shownCentreSeq = null;
 let shownYourCard = "";
 let leaveArmedUntil = 0;
 let levelForNewRoom = null; // symbols per card chosen on the home screen, set once the room exists
+let codeToJoin = ""; // set when the name screen was opened by an invite link or a typed code
+let countdown = null; // the opening 3-2-1 that's running, if any: { game, timer }
+let slideOnNext = null; // "won" or "played" after your correct tap, until the cards update
 
 const nameOf = id => state?.players.find(p => p.id === id)?.name ?? "Someone";
 const savedName = () => (store.get("playerName") ?? "").trim();
@@ -51,14 +55,19 @@ export function initFriends(options) {
   $("playerName").value = savedName();
   $("playerName").addEventListener("input", () => store.set("playerName", $("playerName").value.trim()));
 
-  $("createRoom").addEventListener("click", createRoom);
-  $("joinForm").addEventListener("submit", event => {
+  $("nameForm").addEventListener("submit", event => {
     event.preventDefault();
-    joinWithCode($("roomCode").value);
+    if (!requireName()) return;
+    if (codeToJoin) connect(codeToJoin);
+    else createRoom();
   });
 
   $("shareRoom").addEventListener("click", shareRoom);
   $("startRoom").addEventListener("click", () => send({ type: "start" }));
+  $("readyToggle").addEventListener("click", () => {
+    const me = state?.players.find(p => p.id === playerId);
+    if (me) send({ type: "ready", ready: !me.ready });
+  });
   $("leaveRoom").addEventListener("click", leaveRoom);
   $("roomAgain").addEventListener("click", () => send({ type: "again" }));
   $("roomLeave").addEventListener("click", leaveRoom);
@@ -91,10 +100,16 @@ export function joinWithCode(input) {
   joinRoom(code);
 }
 
+// The name screen either creates a room or, when opened from an invite, joins one. A friend
+// joining sees just the name box and Join game: the description is for whoever creates it.
 function openFriendsScreen(code = "") {
-  $("roomCode").value = code;
+  codeToJoin = code;
+  $("createRoom").textContent = code ? "Join game" : "Create a game";
+  $("friendsIntro").hidden = Boolean(code);
   show("friends");
 }
+
+export const inRoom = () => roomCode !== null;
 
 function requireName() {
   const name = $("playerName").value.trim() || savedName();
@@ -124,7 +139,7 @@ function joinRoom(code) {
     // Came from a link but we don't know their name yet.
     openFriendsScreen(code);
     $("playerName").focus();
-    return toast("Add your name, then tap Join");
+    return toast("Add your name, then tap Join game");
   }
   connect(code);
 }
@@ -184,7 +199,7 @@ function send(message) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
 }
 
-function leaveRoom() {
+export function leaveRoom() {
   send({ type: "leave" });
   leaving = true;
   socket?.close();
@@ -193,6 +208,7 @@ function leaveRoom() {
 }
 
 function resetRoom() {
+  stopCountdown();
   socket = null;
   roomCode = null;
   state = null;
@@ -222,16 +238,30 @@ async function shareRoom() {
 /* ---------- rendering ---------- */
 
 function render() {
+  if (state.phase !== "playing") stopCountdown();
   if (state.phase === "lobby") return renderLobby();
   if (state.phase === "playing") return state.game?.you ? renderPlay() : renderLobby();
   return renderResults();
 }
 
+// Each player keeps one pastel, from their place in the room.
+const toneOf = id => `tone-${Math.max(0, state.players.findIndex(p => p.id === id)) % 4}`;
+
+function circle(id, text, extraClass = "") {
+  const span = document.createElement("span");
+  span.className = `initial ${toneOf(id)} ${extraClass}`.trim();
+  span.setAttribute("aria-hidden", "true");
+  span.textContent = text;
+  return span;
+}
+const initialOf = id => (nameOf(id).trim()[0] ?? "?").toUpperCase();
+
 function renderLobby() {
   const isHost = state.hostId === playerId;
   const { mode, symbolsPerCard } = state.settings;
   const inProgress = state.phase === "playing";
-  const connectedCount = state.players.filter(p => p.connected).length;
+  const { players: connectedCount, waitingFor, canStart } = readiness(state.players);
+  const me = state.players.find(p => p.id === playerId);
   clearLayouts();
   shownCentreSeq = null;
 
@@ -239,13 +269,24 @@ function renderLobby() {
   $("lobbyPlayers").replaceChildren(...state.players.map(p => {
     const li = document.createElement("li");
     li.className = p.connected ? "" : "offline";
+    const who = document.createElement("span");
+    who.className = "who-name";
+    const name = document.createElement("span");
+    name.textContent = p.name;
+    who.append(name);
     const tags = [p.id === state.hostId && "host", p.id === playerId && "you", !p.connected && "offline"].filter(Boolean);
-    li.textContent = p.name;
     if (tags.length) {
       const span = document.createElement("span");
       span.className = "tags";
       span.textContent = tags.join(" · ");
-      li.append(span);
+      who.append(span);
+    }
+    li.append(circle(p.id, initialOf(p.id)), who);
+    if (p.connected && !inProgress) {
+      const mark = document.createElement("span");
+      mark.className = p.ready ? "ready-mark ready" : "ready-mark";
+      mark.textContent = p.ready ? "✓ Ready" : "Not ready";
+      li.append(mark);
     }
     return li;
   }));
@@ -255,13 +296,26 @@ function renderLobby() {
   segmented($("roomSizePicker"), LEVELS.map(level => ({ value: level.symbolsPerCard, label: level.name })), symbolsPerCard,
     value => send({ type: "settings", symbolsPerCard: value }), { disabled: !isHost });
   $("roomModeHint").textContent = MODE_INFO[mode].hint;
+  const host = nameOf(state.hostId);
+  $("hostOnlyNote").textContent = isHost ? "" : `Only ${host} (the host) can change these`;
 
+  $("readyToggle").hidden = inProgress;
+  $("readyToggle").setAttribute("aria-pressed", String(Boolean(me?.ready)));
+  $("readyToggle").textContent = me?.ready ? "✓ Ready (tap to undo)" : "I'm ready";
+
+  // Start stays greyed out until at least two players are in and every one of them is ready.
   $("startRoom").hidden = !isHost || inProgress;
-  $("startRoom").disabled = connectedCount < MIN_PLAYERS;
-  $("startRoom").textContent = connectedCount < MIN_PLAYERS ? "Waiting for another player…" : `Start game with ${connectedCount}`;
+  $("startRoom").disabled = !canStart;
+  $("startRoom").textContent = connectedCount < MIN_PLAYERS ? "Waiting for another player…"
+    : waitingFor.length ? `Waiting for ${waitingFor.length} ${waitingFor.length === 1 ? "player" : "players"} to be ready…`
+    : `Start game with ${connectedCount}`;
   $("lobbyWaiting").textContent = inProgress
     ? "A game is in progress. You'll be in the next round."
-    : isHost ? "Share the link, then start when everyone's in." : `Waiting for ${nameOf(state.hostId)} to start the game.`;
+    : isHost ? (!me?.ready ? "Tap I'm ready when you're set. The game starts once everyone is."
+      : canStart ? "Everyone's ready. Start when you like." : "Share the link, then start once everyone's ready.")
+    : !me?.ready ? `Tap I'm ready when you're set. ${host} (the host) starts the game once everyone is.`
+    : canStart ? `Everyone's ready. Waiting for ${host} to start the game…`
+    : `Waiting for everyone to be ready. ${host} (the host) starts the game.`;
   show("lobby");
 }
 
@@ -269,8 +323,17 @@ function renderPlay() {
   const game = state.game;
   const you = game.you;
   const tower = game.mode === MULTIPLAYER_MODES.tower;
+  const centreChanged = shownCentreSeq !== game.centreSeq;
 
-  if (shownCentreSeq !== game.centreSeq) {
+  // After your correct tap the cards about to change: the won card slides onto your pile
+  // (Pick one up), or your card goes down on the centre (Put one down).
+  if (slideOnNext && centreChanged && shownCentreSeq !== null) {
+    if (tower) slideCard($("roomCentre"), $("roomYours"));
+    else slideCard($("roomYours"), $("roomCentre"));
+  }
+  slideOnNext = null;
+
+  if (centreChanged) {
     renderCard($("roomCentre"), game.centre, state.emoji, shownCentreSeq === null ? null : "deal");
     shownCentreSeq = game.centreSeq;
   }
@@ -300,10 +363,60 @@ function renderPlay() {
     const li = document.createElement("li");
     const status = p.forfeited ? "out" : !online.get(p.id) ? "offline" : p.lockedOut ? "🔒" : "";
     li.className = p.forfeited || !online.get(p.id) ? "dim" : "";
-    li.textContent = `${nameOf(p.id)} ${tower ? p.won : p.cardsLeft}${status ? ` ${status}` : ""}`;
+    li.append(circle(p.id, initialOf(p.id)), `${nameOf(p.id)} · ${tower ? p.won : p.cardsLeft}${status ? ` ${status}` : ""}`);
     return li;
   }));
+
+  if (game.startsInMs > 0 && !countdown) startCountdown(game);
   show("roomPlay");
+}
+
+// The opening 3, 2, 1, Go! on top of the table. It runs for however long the room says is
+// left, so a phone that reconnects partway through joins in at the right number.
+function startCountdown(game) {
+  const overlay = $("countdown");
+  const endsAt = performance.now() + game.startsInMs;
+  $("countdownMode").textContent = `${MODE_INFO[game.mode].name} · ${levelName(state.settings.symbolsPerCard)}`;
+  $("countdownPlayers").replaceChildren(...game.players.map(p => {
+    const li = document.createElement("li");
+    li.append(circle(p.id, initialOf(p.id)), p.id === playerId ? `${nameOf(p.id)} (you)` : nameOf(p.id));
+    return li;
+  }));
+  overlay.classList.remove("fading");
+  overlay.hidden = false;
+
+  let shown = "";
+  const tick = () => {
+    const left = endsAt - performance.now();
+    if (left <= 0) {
+      overlay.classList.add("fading");
+      countdown.timer = setTimeout(() => {
+        overlay.hidden = true;
+        countdown = null;
+        for (const card of [$("roomCentre"), $("roomYours")]) replayAnimation(card, "deal");
+      }, 350);
+      return;
+    }
+    const label = left > 3000 ? "3" : left > 2000 ? "2" : left > 1000 ? "1" : "Go!";
+    if (label !== shown) {
+      shown = label;
+      const number = document.createElement("span");
+      number.className = "count";
+      number.textContent = label;
+      $("countdownCircle").replaceChildren(number);
+      $("countdownCircle").classList.toggle("go", label === "Go!");
+      $("countdownHeading").textContent = label === "Go!" ? "Symbolic!" : "Get ready!";
+    }
+    countdown.timer = setTimeout(tick, 50);
+  };
+  countdown = { timer: 0 };
+  tick();
+}
+
+function stopCountdown() {
+  if (countdown) clearTimeout(countdown.timer);
+  countdown = null;
+  $("countdown").hidden = true;
 }
 
 function renderResults() {
@@ -311,32 +424,87 @@ function renderResults() {
   const tower = game.mode === MULTIPLAYER_MODES.tower;
   const winners = game.standings.filter(s => s.place === 1 && !s.forfeited);
   const youWon = winners.some(s => s.id === playerId);
+  stopCountdown();
 
-  $("roomResultMode").textContent = `${MODE_INFO[game.mode].name} · ${levelName(state.settings.symbolsPerCard)}`;
+  // The summary is missing only for a game that started before this version was deployed.
+  const summary = game.summary;
+  const statsOf = id => summary?.players.find(p => p.id === id);
+  const badgesOf = id => (summary?.badges ?? []).filter(b => b.playerIds.includes(id)).map(b => b.emoji).join("");
+  const line = s => verdictFor(s, game.standings, summary?.startedAt ?? "");
+  const mine = game.standings.find(s => s.id === playerId);
+
+  $("roomResultMode").textContent = [
+    MODE_INFO[game.mode].name,
+    levelName(state.settings.symbolsPerCard),
+    summary?.durationMs != null && `lasted ${formatTime(summary.durationMs)}`,
+  ].filter(Boolean).join(" · ");
   $("roomResultTitle").textContent = youWon
     ? (winners.length > 1 ? "You tied for first!" : "You win!")
     : winners.length ? `${winners.map(s => nameOf(s.id)).join(" & ")} ${winners.length > 1 ? "win" : "wins"}` : "Game over";
+  $("roomVerdict").textContent = mine ? `“${line(mine)}”` : "";
 
   $("standings").replaceChildren(...game.standings.map(s => {
     const li = document.createElement("li");
-    li.className = s.id === playerId ? "you" : "";
+    li.className = [s.id === playerId && "you", s.forfeited && "out"].filter(Boolean).join(" ");
     const detail = s.forfeited ? "forfeited"
       : tower ? `${s.won} ${s.won === 1 ? "card" : "cards"}`
       : s.cardsLeft === 0 ? "no cards left" : `${s.cardsLeft} left`;
-    li.innerHTML = `<span class="place"></span><span class="who"></span><span class="detail"></span>`;
-    li.querySelector(".place").textContent = s.place;
-    li.querySelector(".who").textContent = nameOf(s.id);
-    li.querySelector(".detail").textContent = detail;
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = s.id === playerId ? `${nameOf(s.id)} (you)` : nameOf(s.id);
+    const badges = badgesOf(s.id);
+    if (badges) {
+      const span = document.createElement("span");
+      span.className = "who-badges";
+      span.textContent = badges;
+      who.append(span);
+    }
+    const detailEl = document.createElement("span");
+    detailEl.className = "detail";
+    detailEl.textContent = detail;
+    const stats = document.createElement("p");
+    stats.className = "stats";
+    stats.textContent = statsLine(statsOf(s.id));
+    li.append(circle(s.id, s.place, "place"), who, detailEl, stats);
+    if (s.id !== playerId) {
+      const p = document.createElement("p");
+      p.className = "line";
+      p.textContent = `“${line(s)}”`;
+      li.append(p);
+    }
+    return li;
+  }));
+
+  const awarded = summary?.badges ?? [];
+  $("roomBadgesSection").hidden = awarded.length === 0;
+  $("roomBadges").replaceChildren(...awarded.map(b => {
+    const li = document.createElement("li");
+    li.title = b.description;
+    li.innerHTML = `<span class="badge-emoji" aria-hidden="true"></span><span class="badge-text"><span class="badge-name"></span><span class="badge-who"></span></span>`;
+    li.querySelector(".badge-emoji").textContent = b.emoji;
+    li.querySelector(".badge-name").textContent = b.name;
+    li.querySelector(".badge-who").textContent = b.playerIds.map(id => id === playerId ? "You" : nameOf(id)).join(" & ");
     return li;
   }));
 
   const isHost = state.hostId === playerId;
   $("roomAgain").hidden = !isHost;
+  $("roomAgain").parentElement.classList.toggle("two", isHost);
   $("roomResultWaiting").textContent = isHost ? "" : `Waiting for ${nameOf(state.hostId)} to start another round.`;
   clearLayouts();
   shownCentreSeq = null;
   shownYourCard = "";
   show("roomResults");
+}
+
+// "Average 1.8s · fastest 0.9s · 2 wrong taps" for one player's summary row.
+function statsLine(stats) {
+  if (!stats) return "";
+  const parts = stats.matches
+    ? [`average ${formatTime(stats.averageMs)}`, `fastest ${formatTime(stats.fastestMs)}`]
+    : ["no matches"];
+  parts.push(`${stats.wrongTotal} wrong ${stats.wrongTotal === 1 ? "tap" : "taps"}`);
+  return parts.join(" · ").replace(/^./, c => c.toUpperCase());
 }
 
 /* ---------- playing ---------- */
@@ -350,7 +518,10 @@ function tap(button) {
 function handleEvent({ kind, playerId: who, symbol }) {
   const mine = who === playerId;
   if (mine) {
-    if (kind === "wrong") {
+    if (kind === "correct") {
+      buzz();
+      slideOnNext = true;
+    } else if (kind === "wrong") {
       if (lastTapped?.dataset.symbol === String(symbol)) replayAnimation(lastTapped, "wrong");
       toast("Not that one. One more wrong tap locks this card", "bad");
     } else if (kind === "lockedOut") {
