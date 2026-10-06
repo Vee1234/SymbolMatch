@@ -30,6 +30,7 @@ body {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
+html[data-screen="home"], html[data-screen="home"] body { background: #ddf0fb; }
 
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
