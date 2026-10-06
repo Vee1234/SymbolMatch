@@ -14,19 +14,12 @@
   <script type="module" src="app.js"></script>
 </head>
 <body>
-  <!-- ========== Solo ========== -->
-
-  <main id="home" class="screen landing">
-    <div class="bubbles" aria-hidden="true">
-      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-    </div>
-
-    <header class="topbar">
-      <svg class="logo" viewBox="0 0 100 100" role="img" aria-label="Symbolic">
-        <defs>
-          <clipPath id="logoCard"><circle cx="48" cy="48" r="43"/></clipPath>
-          <path id="logoS" d="M 70.7 25.8 A 22 18 0 1 0 50 50 A 22 18 0 1 1 29.3 74.2" fill="none" stroke-width="16" stroke-linecap="round"/>
-        </defs>
+  <!-- The logo, drawn once and reused in every top bar. -->
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <defs>
+      <clipPath id="logoCard"><circle cx="48" cy="48" r="43"/></clipPath>
+      <path id="logoS" d="M 70.7 25.8 A 22 18 0 1 0 50 50 A 22 18 0 1 1 29.3 74.2" fill="none" stroke-width="16" stroke-linecap="round"/>
+      <symbol id="logoMark" viewBox="0 0 100 100">
         <circle cx="54" cy="54" r="43" fill="#000"/>
         <circle cx="48" cy="48" r="43" fill="#fff"/>
         <g clip-path="url(#logoCard)">
@@ -37,7 +30,18 @@
         <circle cx="48" cy="48" r="43" fill="none" stroke="#000" stroke-width="4"/>
         <use href="#logoS" stroke="#f4a7c0" transform="translate(52 52) rotate(-12) scale(.52) translate(-50 -50)"/>
         <use href="#logoS" stroke="#000" transform="translate(48 48) rotate(-12) scale(.52) translate(-50 -50)"/>
-      </svg>
+      </symbol>
+    </defs>
+  </svg>
+  <!-- ========== Solo ========== -->
+
+  <main id="home" class="screen landing">
+    <div class="bubbles" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <header class="topbar">
+<svg class="logo" role="img" aria-label="Symbolic"><use href="#logoMark"/></svg>
       <button type="button" class="tutorial" id="tutorial"><span aria-hidden="true">🎓</span>New here? Play the tutorial</button>
     </header>
 
@@ -60,7 +64,7 @@
           <span class="dot dot-a" aria-hidden="true"></span>
           <span class="dot dot-b" aria-hidden="true"></span>
           <button type="button" class="option option-first" id="pickFriends">
-            <span class="option-emoji" aria-hidden="true">🎉</span><span>Play with<br>friends</span>
+            <span class="option-emoji" aria-hidden="true">👯</span><span>Play with<br>friends</span>
           </button>
           <button type="button" class="option option-second" id="pickSolo">
             <span class="option-emoji" aria-hidden="true">🎯</span><span>Play a<br>solo game</span>
@@ -84,7 +88,7 @@
   </main>
 
   <main id="play" class="screen play" hidden>
-    <header class="hud">
+    <header class="topbar hud">
       <button type="button" class="quit" id="quit" aria-label="Quit game">✕</button>
       <div class="stat"><span class="label">Time</span><span class="value" id="time">0.0</span></div>
       <div class="stat"><span class="label" id="scoreLabel">Matches</span><span class="value" id="score">0</span></div>
@@ -92,109 +96,145 @@
     </header>
 
     <section class="table" id="table">
-      <p class="pile-label">Centre card</p>
+      <p class="pile-label" id="tableLabel">Centre card</p>
       <div class="card" id="topCard"></div>
       <div class="card mine" id="yourCard"></div>
       <p class="pile-label">Your card</p>
     </section>
   </main>
 
-  <main id="results" class="screen results" hidden>
-    <p class="label" id="resultMode"></p>
-    <h2 id="resultTitle"></h2>
-    <p class="result-main" id="resultMain"></p>
+  <main id="results" class="screen page results" hidden>
+    <header class="topbar">
+      <div class="topbar-title">
+        <button type="button" class="logo-link" data-home aria-label="Symbolic: back to the home screen"><svg class="logo" aria-hidden="true"><use href="#logoMark"/></svg></button>
+        <h1 class="page-name" id="resultsName">Results</h1>
+      </div>
+    </header>
+
+    <div class="result-card">
+      <p class="label" id="resultMode"></p>
+      <h2 id="resultTitle"></h2>
+      <span class="pips big" id="resultPips" hidden></span>
+      <p class="result-main" id="resultMain"></p>
+      <p class="result-best" id="resultBest"></p>
+    </div>
     <dl class="result-stats" id="resultStats"></dl>
-    <p class="result-best" id="resultBest"></p>
     <div class="actions">
-      <button type="button" class="primary" id="again">Play again</button>
-      <button type="button" class="secondary" id="toHome">Home</button>
+      <button type="button" class="wide blue" id="again">Play again</button>
+      <button type="button" class="wide white" id="toHome">Home</button>
     </div>
   </main>
 
   <!-- ========== Play with friends ========== -->
 
-  <main id="friends" class="screen home" hidden>
-    <button type="button" class="back" id="friendsBack">← Back</button>
-    <header class="brand">
-      <h2>Play with friends</h2>
-      <p>Everyone plays on their own phone. Send the invite link to bring people in, whether they're next to you or far away.</p>
+  <main id="friends" class="screen page" hidden>
+    <header class="topbar">
+      <div class="topbar-title">
+        <button type="button" class="logo-link" data-home aria-label="Symbolic: back to the home screen"><svg class="logo" aria-hidden="true"><use href="#logoMark"/></svg></button>
+        <h1 class="page-name">Play with friends</h1>
+      </div>
+      <button type="button" class="bar-button" id="friendsBack">← Back</button>
     </header>
 
-    <section class="panel">
-      <label class="label" for="playerName">Your name</label>
+    <div class="friends-intro">
+      <span class="big-emoji" aria-hidden="true">👯</span>
+      <p>Everyone plays on their own phone, in the same room or far apart. You'll get a link to share once the game is made.</p>
+    </div>
+    <form class="name-form" id="nameForm">
+      <label for="playerName">What's your name?</label>
       <input class="text-input" id="playerName" maxlength="16" autocomplete="nickname" placeholder="e.g. Sam">
-    </section>
-
-    <button type="button" class="primary" id="createRoom">Create a game</button>
-
-    <form class="panel" id="joinForm">
-      <label class="label" for="roomCode">Or join with a room code</label>
-      <div class="join-row">
-        <input class="text-input code-input" id="roomCode" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE">
-        <button type="submit" class="secondary">Join</button>
-      </div>
+      <button type="submit" class="wide blue" id="createRoom">Create a game</button>
     </form>
   </main>
 
-  <main id="lobby" class="screen home" hidden>
-    <header class="lobby-head">
-      <p class="label">Room code</p>
-      <p class="room-code" id="lobbyCode"></p>
-      <button type="button" class="secondary" id="shareRoom">Share invite link</button>
+  <main id="lobby" class="screen page" hidden>
+    <header class="topbar">
+      <div class="topbar-title">
+        <button type="button" class="logo-link" data-home aria-label="Symbolic: back to the home screen"><svg class="logo" aria-hidden="true"><use href="#logoMark"/></svg></button>
+        <h1 class="page-name">Lobby</h1>
+      </div>
+      <button type="button" class="bar-button" id="leaveRoom">Leave room</button>
     </header>
 
+    <section class="room-panel">
+      <div>
+        <p class="label">Room code</p>
+        <p class="room-code" id="lobbyCode"></p>
+      </div>
+      <button type="button" class="pill-button pink" id="shareRoom">🔗 Share link</button>
+    </section>
+
     <section class="panel">
-      <h2 class="label">Players</h2>
+      <h2 class="section-title">Players</h2>
       <ul class="player-list" id="lobbyPlayers"></ul>
     </section>
 
-    <section class="panel">
-      <h2 class="label">Game</h2>
-      <div class="seg seg-2" id="roomModePicker" role="radiogroup"></div>
+    <section class="settings-panel">
+      <div class="toggle" id="roomModePicker" role="radiogroup" aria-label="Game"></div>
       <p class="hint" id="roomModeHint"></p>
-      <h2 class="label">Level</h2>
-      <div class="seg" id="roomSizePicker" role="radiogroup"></div>
+      <h2 class="section-title" id="roomLevelLabel">Select your level</h2>
+      <div class="lobby-levels" id="roomSizePicker" role="radiogroup" aria-labelledby="roomLevelLabel"></div>
     </section>
 
-    <p class="hint" id="lobbyWaiting"></p>
     <div class="actions">
-      <button type="button" class="secondary ready-toggle" id="readyToggle" aria-pressed="false">I'm ready</button>
-      <button type="button" class="primary" id="startRoom">Start game</button>
-      <button type="button" class="secondary" id="leaveRoom">Leave room</button>
+      <button type="button" class="wide blue" id="readyToggle" aria-pressed="false">I'm ready</button>
+      <button type="button" class="wide black" id="startRoom">Start game</button>
     </div>
+    <p class="hint centred" id="lobbyWaiting"></p>
   </main>
 
   <main id="roomPlay" class="screen play" hidden>
-    <header class="hud">
+    <header class="topbar hud">
       <button type="button" class="quit" id="roomQuit" aria-label="Leave game">✕</button>
       <div class="stat"><span class="label" id="roomStatLabel">Centre pile</span><span class="value" id="roomStat">0</span></div>
       <div class="stat"><span class="label" id="roomScoreLabel">Won</span><span class="value" id="roomScore">0</span></div>
       <div class="stat"><span class="label">Mistakes</span><span class="pips" id="roomMistakes"></span></div>
     </header>
-    <ul class="opponents" id="opponents" aria-label="Other players"></ul>
+    <div class="stage">
+      <ul class="opponents" id="opponents" aria-label="Other players"></ul>
+      <section class="table" id="roomTable">
+        <p class="pile-label">Centre card</p>
+        <div class="card" id="roomCentre"></div>
+        <div class="card mine" id="roomYours"></div>
+        <p class="pile-label" id="roomYoursLabel">Your card</p>
+      </section>
 
-    <section class="table" id="roomTable">
-      <p class="pile-label">Centre card</p>
-      <div class="card" id="roomCentre"></div>
-      <div class="card mine" id="roomYours"></div>
-      <p class="pile-label" id="roomYoursLabel">Your card</p>
-    </section>
+      <!-- The opening 3, 2, 1, Go! runs on top of the table, then fades to reveal the cards. -->
+      <div class="countdown" id="countdown" hidden>
+        <p class="label" id="countdownMode"></p>
+        <p class="countdown-heading" id="countdownHeading">Get ready!</p>
+        <div class="countdown-card">
+          <div class="orbit" aria-hidden="true"><span></span><span></span></div>
+          <div class="countdown-circle" id="countdownCircle" role="timer" aria-live="assertive"></div>
+        </div>
+        <p class="section-title">Playing this round</p>
+        <ul class="countdown-players" id="countdownPlayers"></ul>
+      </div>
+    </div>
   </main>
 
-  <main id="roomResults" class="screen results" hidden>
-    <p class="label" id="roomResultMode"></p>
-    <h2 id="roomResultTitle"></h2>
-    <p class="verdict" id="roomVerdict"></p>
-    <p class="hint" id="roomDuration"></p>
+  <main id="roomResults" class="screen page results" hidden>
+    <header class="topbar">
+      <div class="topbar-title">
+        <button type="button" class="logo-link" data-home aria-label="Symbolic: back to the home screen"><svg class="logo" aria-hidden="true"><use href="#logoMark"/></svg></button>
+        <h1 class="page-name">Results</h1>
+      </div>
+    </header>
+
+    <div class="results-head">
+      <p class="label" id="roomResultMode"></p>
+      <h2 id="roomResultTitle"></h2>
+      <p class="verdict" id="roomVerdict"></p>
+    </div>
     <ol class="standings" id="standings"></ol>
     <section class="badges" id="roomBadgesSection" aria-labelledby="roomBadgesLabel">
-      <h3 class="label" id="roomBadgesLabel">Badges</h3>
+      <h3 class="section-title" id="roomBadgesLabel">Badges</h3>
       <ul class="badge-list" id="roomBadges"></ul>
     </section>
-    <p class="hint" id="roomResultWaiting"></p>
-    <div class="actions">
-      <button type="button" class="primary" id="roomAgain">Play again</button>
-      <button type="button" class="secondary" id="roomLeave">Leave room</button>
+    <p class="hint centred" id="roomResultWaiting"></p>
+    <div class="actions two">
+      <button type="button" class="wide blue" id="roomAgain">Play again</button>
+      <button type="button" class="wide white" id="roomLeave">Leave room</button>
     </div>
   </main>
 

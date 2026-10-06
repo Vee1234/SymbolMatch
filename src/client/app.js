@@ -1,9 +1,9 @@
 import { DeckGenerator, LEVELS, levelName, MAX_CARDS, deckSizeFor } from "./shared/generator.js";
 import { SoloGame, MODES, WRONG_TAPS_ALLOWED_PER_GAME } from "./shared/game.js";
 import { pickEmoji } from "./shared/symbols.js";
-import { $, show, store, toast, formatTime, segmented, renderPips } from "./ui.js";
+import { $, show, store, toast, formatTime, segmented, renderPips, buzz, slideCard } from "./ui.js";
 import { renderCard, replayAnimation, onSymbolTap, clearLayouts } from "./cards.js";
-import { initFriends, createRoomAtLevel, joinWithCode } from "./friends.js";
+import { initFriends, createRoomAtLevel, joinWithCode, inRoom, leaveRoom } from "./friends.js";
 
 const MODE_INFO = {
   [MODES.clock]: { name: "Beat the clock", desc: "As many matches as you can in 60 seconds." },
@@ -136,6 +136,9 @@ function handleTap(button) {
   const result = game.tap(Number(button.dataset.symbol), now);
 
   if (result === "correct") {
+    // The won card slides down onto your pile, with a buzz.
+    buzz();
+    slideCard($("topCard"), $("yourCard"));
     renderCard($("yourCard"), game.yourCard, emoji, "deal");
     renderCard($("topCard"), game.topCard, emoji, "deal");
   } else if (result === "wrong") {
@@ -162,14 +165,19 @@ function finish() {
   game = null;
 
   $("resultMode").textContent = `${MODE_INFO[mode].name} · ${levelName(symbolsPerCard)}`;
+  const forfeited = g.status === "forfeit";
+  $("resultsName").textContent = forfeited ? "Forfeit" : "Results";
+  $("resultPips").hidden = !forfeited;
+  renderPips($("resultPips"), WRONG_TAPS_ALLOWED_PER_GAME + 1, WRONG_TAPS_ALLOWED_PER_GAME + 1);
+  $("again").textContent = forfeited ? "Try again" : "Play again";
   const stats = [];
   let best = "";
   let isNewBest = false;
 
-  if (g.status === "forfeit") {
+  if (forfeited) {
     $("resultTitle").textContent = "Forfeit";
     $("resultMain").textContent = `${WRONG_TAPS_ALLOWED_PER_GAME + 1} wrong taps`;
-    stats.push(["Matches", g.score], ["Cards locked out", g.missed]);
+    stats.push(["Matches before that", g.score], ["Cards locked out", g.missed]);
   } else if (g.status === "timeUp") {
     $("resultTitle").textContent = "Time's up";
     $("resultMain").textContent = `${g.score} ${g.score === 1 ? "match" : "matches"}`;
@@ -192,7 +200,7 @@ function finish() {
     dd.textContent = value;
     return [dt, dd];
   }));
-  $("resultBest").textContent = isNewBest ? "New best!" : best;
+  $("resultBest").textContent = isNewBest ? "🎉 New best!" : best;
   $("resultBest").classList.toggle("new", isNewBest);
   show("results");
 }
@@ -219,6 +227,10 @@ $("homeJoin").addEventListener("submit", event => {
   event.preventDefault();
   joinWithCode($("homeCode").value);
 });
+// The logo in every white bar goes back to the home screen (leaving any friends' room).
+for (const button of document.querySelectorAll("[data-home]")) {
+  button.addEventListener("click", () => (inRoom() ? leaveRoom() : goHome()));
+}
 // The tutorial is planned but not built yet.
 $("tutorial").addEventListener("click", () => toast("The tutorial is coming soon"));
 // Safari on iPhone only shows :active (the press animation) on pages that listen for touches.

@@ -9,7 +9,7 @@ import { DurableObject } from "cloudflare:workers";
 import { DeckGenerator, SUPPORTED_SYMBOLS_PER_CARD, MAX_CARDS, deckSizeFor } from "../client/shared/generator.js";
 import { pickEmoji } from "../client/shared/symbols.js";
 import {
-  MULTIPLAYER_MODES, MAX_PLAYERS, MIN_PLAYERS, createGame, applyTap, forfeitPlayer, viewFor, readiness,
+  MULTIPLAYER_MODES, MAX_PLAYERS, MIN_PLAYERS, COUNTDOWN_MS, createGame, applyTap, forfeitPlayer, viewFor, readiness,
 } from "../client/shared/multiplayer.js";
 
 const MAX_NAME_LENGTH = 16;
@@ -170,7 +170,7 @@ export class GameRoom extends DurableObject {
     const symbolIds = Array.from({ length: deckSizeFor(q) }, (_, id) => id);
     const deck = new DeckGenerator(q, symbolIds).generate({ maxCards: MAX_CARDS });
     try {
-      room.game = createGame(deck, room.settings.mode, playerIds, Date.now());
+      room.game = createGame(deck, room.settings.mode, playerIds, Date.now(), COUNTDOWN_MS);
     } catch (error) {
       return this.sendError(ws, error.message);
     }
@@ -235,7 +235,7 @@ export class GameRoom extends DurableObject {
       settings: room.settings,
       players: room.players.map(p => ({ ...p, ready: p.ready === true, connected: this.isConnected(p.id, ignore) })),
       emoji: room.emoji,
-      game: room.game ? viewFor(room.game, playerId) : null,
+      game: room.game ? viewFor(room.game, playerId, Date.now()) : null,
     };
   }
 

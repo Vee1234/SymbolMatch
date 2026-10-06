@@ -22,6 +22,9 @@ import { sharedSymbol, WRONG_TAPS_ALLOWED_PER_CARD, WRONG_TAPS_ALLOWED_PER_GAME 
 export const MULTIPLAYER_MODES = { tower: "tower", well: "well" };
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;
+// Every game opens with a 3, 2, 1, Go! countdown on everyone's phone (a second each).
+// Taps don't count until it's over, and match times start from the end of it.
+export const COUNTDOWN_MS = 4000;
 
 // Before a game starts, every connected player has to say they're ready; the host can't
 // start until they all have. players: the room's list, each with `connected` and `ready`.
@@ -36,7 +39,8 @@ export function readiness(players) {
   };
 }
 
-export function createGame(deck, mode, playerIds, now = Date.now()) {
+// countdownMs: how long until play starts (the room passes COUNTDOWN_MS).
+export function createGame(deck, mode, playerIds, now = Date.now(), countdownMs = 0) {
   if (!Object.values(MULTIPLAYER_MODES).includes(mode)) {
     throw new RangeError(`unknown mode ${mode}`);
   }
@@ -65,9 +69,10 @@ export function createGame(deck, mode, playerIds, now = Date.now()) {
     cards.forEach((card, i) => players[playerIds[i % playerIds.length]].pile.push(card));
   }
 
+  const startsAt = now + countdownMs;
   return {
     mode, order: [...playerIds], players, centre, centreSeq: 0, centrePile, status: "playing",
-    startedAt: now, endedAt: null, centreShownAt: now, lastWinner: null,
+    startedAt: startsAt, endedAt: null, centreShownAt: startsAt, lastWinner: null,
   };
 }
 
@@ -85,6 +90,7 @@ export function isLockedOut(game, id) {
 export function applyTap(game, id, symbol, centreSeq, now = Date.now()) {
   const p = game.players[id];
   if (game.status !== "playing" || !p || p.forfeited) return "ignored";
+  if (now < game.startedAt) return "ignored"; // still counting down
   if (centreSeq !== game.centreSeq) return "tooLate";
   if (isLockedOut(game, id)) return "ignored";
   const yours = topCard(p);
@@ -264,7 +270,7 @@ export function gameSummary(game) {
 
 // What one player is allowed to see: their own top card, the centre card, and a summary of
 // everyone else (never other players' cards).
-export function viewFor(game, id) {
+export function viewFor(game, id, now = Date.now()) {
   const summary = pid => {
     const p = game.players[pid];
     return {
@@ -280,6 +286,9 @@ export function viewFor(game, id) {
   return {
     mode: game.mode,
     status: game.status,
+    // How long the opening countdown has left; phones run it from this, so their clocks
+    // don't need to agree with the room's.
+    startsInMs: game.status === "playing" ? Math.max(0, (game.startedAt ?? 0) - now) : 0,
     centre: game.centre,
     centreSeq: game.centreSeq,
     centrePileLeft: game.centrePile.length,

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { DeckGenerator, deckSizeFor } from "../../src/client/shared/generator.js";
 import { sharedSymbol } from "../../src/client/shared/game.js";
 import {
-  createGame, applyTap, standings, viewFor, isLockedOut, playerStats, awardBadges, gameSummary, readiness, forfeitPlayer,
+  createGame, applyTap, standings, viewFor, isLockedOut, playerStats, awardBadges, gameSummary, readiness, forfeitPlayer, COUNTDOWN_MS,
 } from "../../src/client/shared/multiplayer.js";
 import { verdictFor, verdictKind, VERDICTS } from "../../src/client/shared/verdicts.js";
 
@@ -243,4 +243,17 @@ test("every phone picks the same line for the same player", () => {
   ];
   assert.equal(verdictFor(all[0], all, 123), verdictFor(all[0], all, 123));
   assert.ok(VERDICTS.first.includes(verdictFor(all[0], all, 123)));
+});
+
+/* ---------- opening countdown ---------- */
+
+test("taps during the opening countdown don't count, and times start when it ends", () => {
+  const game = createGame(makeDeck(7), "tower", ["a", "b"], 1000, COUNTDOWN_MS);
+  assert.equal(viewFor(game, "a", 1000).startsInMs, COUNTDOWN_MS);
+  assert.equal(applyTap(game, "a", right(game, "a"), game.centreSeq, 2000), "ignored");
+  assert.equal(game.players.a.won, 0);
+  const start = 1000 + COUNTDOWN_MS;
+  assert.equal(viewFor(game, "a", start + 50).startsInMs, 0);
+  assert.equal(applyTap(game, "a", right(game, "a"), game.centreSeq, start + 700), "correct");
+  assert.deepEqual(game.players.a.matchTimes, [700]);
 });

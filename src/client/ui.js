@@ -2,16 +2,41 @@
 
 export const $ = id => document.getElementById(id);
 
-// The page behind the screens (seen when iPhone scrolling bounces) matches the screen
-// showing, and the browser bars match its top edge: the home screen's white bar, or felt green.
-const BAR_COLOURS = { home: "#ffffff" };
-const FELT = "#16312c";
-
 export function show(screenId) {
+  if (document.documentElement.dataset.screen === screenId) return; // already showing
   for (const el of document.querySelectorAll(".screen")) el.hidden = el.id !== screenId;
+  for (const copy of document.querySelectorAll(".card.flying")) copy.remove(); // a card mid-slide
   document.documentElement.dataset.screen = screenId;
-  document.querySelector('meta[name="theme-color"]').content = BAR_COLOURS[screenId] ?? FELT;
   window.scrollTo(0, 0);
+}
+
+// A short buzz for a correct match, on phones that can vibrate. (Safari on iPhone can't,
+// so there it does nothing.)
+export function buzz() {
+  try { navigator.vibrate?.(30); } catch { /* not allowed */ }
+}
+
+// Slides a copy of one card onto another (a won card going onto your pile, or your card
+// going down on the centre), so the real cards can update underneath straight away.
+export function slideCard(from, to) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const a = from.getBoundingClientRect();
+  const b = to.getBoundingClientRect();
+  if (!a.width || !b.width) return;
+  const copy = from.cloneNode(true);
+  copy.removeAttribute("id");
+  copy.classList.remove("deal", "locked", "mine");
+  copy.classList.add("flying");
+  copy.setAttribute("aria-hidden", "true");
+  Object.assign(copy.style, { left: `${a.left}px`, top: `${a.top}px`, width: `${a.width}px`, height: `${a.height}px` });
+  document.body.append(copy);
+  const move = copy.animate(
+    [{ transform: "none" }, { transform: `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${b.width / a.width})` }],
+    { duration: 320, easing: "ease-in" },
+  );
+  move.onfinish = move.oncancel = () => copy.remove();
+  // Browsers pause animations in background tabs, so don't rely on onfinish alone.
+  setTimeout(() => copy.remove(), 600);
 }
 
 // localStorage can be unavailable (private browsing, blocked storage); the game works without it.
