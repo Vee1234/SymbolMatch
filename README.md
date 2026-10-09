@@ -42,6 +42,10 @@ Every screen shares one look: a light blue background, black text, white cards w
 
 On every screen the centre card is on top and the player's own card is below. Tapping the one symbol the two cards share scores; a tap counts as soon as the finger touches the screen. When you win a card it slides down onto your pile (in Put one down, your card slides up onto the centre), and phones that can vibrate give a short buzz. Safari on iPhone doesn't allow vibration, so iPhones don't buzz.
 
+In a multiplayer game everyone plays for the same centre card. The other players sit round it like round a table, each shown as a circle with their name above and their score in a badge; you're at the bottom. They're seated in mirrored pairs down the left and right sides, starting just below the top of the card, so the space straight above the card is always free. Your own score is a big circle in the corner just outside your card, and the top bar shows the centre pile as a progress bar that fills from blue to pink as the game goes on (in Put one down, it fills as your own cards run out). When you win the centre card it slides onto your pile and a +1 pops up by your score. When someone else wins it, the centre card flies off to their seat (in Put one down, their card flies in from their seat), their seat flashes +1, and everyone else sees a pain emoji with "+1 for Sam" in the space between the top bar and the centre card. It grows, shakes from side to side and shrinks away without covering either card, so every phone sees the next centre card at the same moment. The emoji take turns (💔 😰 😖 😩 🫠 💥 🥀 😵‍💫), so the same one never shows twice in a row.
+
+Winning `STREAK_MIN` (3) centre cards in a row is a streak, until anyone else wins one. Your streak shows as 🔥 and the count on your score; other players on a streak get a 🔥 by their name.
+
 **Solo modes** (run entirely on the phone):
 
 | Mode | Goal |
@@ -66,7 +70,7 @@ Best scores are saved on the phone, separately for each mode and card size.
 
 **Starting a multiplayer game.** A friend who opens an invite link without a saved name sees just a name box and **Join game**. Everyone in the lobby sees who's in the room and taps **I'm ready** when they're set. Only the host can change the mode and level (other players see them greyed out, with a note saying so) and only the host has a Start button. The host's Start button stays greyed out until at least two players are online and all of them are ready. Offline players aren't dealt in, so they don't hold the game up. Changing the mode or level, or going back to the lobby after a game, clears everyone's Ready.
 
-Every game opens with a 3, 2, 1, Go! countdown on top of the game screen, showing who's playing; then it fades and the cards are dealt in. The room ignores taps until the countdown ends (`COUNTDOWN_MS` in `shared/multiplayer.js`, 4 seconds) and match times start from then. Each phone runs the countdown from the time the room says is left, so the phones don't need their clocks to agree.
+Every game, solo or multiplayer, opens with a 3, 2, 1, Go! countdown on top of the game screen (in multiplayer it also shows who's playing); then it fades and the cards are dealt in. In solo play the clock starts when it ends. In multiplayer the room ignores taps until the countdown ends (`COUNTDOWN_MS` in `shared/game.js`, 4 seconds) and match times start from then. Each phone runs the countdown from the time the room says is left, so the phones don't need their clocks to agree.
 
 **End of a multiplayer game.** The results screen shows:
 
@@ -176,8 +180,8 @@ Invite links have the form `https://<host>/?room=CODE`.
 
 | Message | Contents |
 |---|---|
-| `{ type: "state", … }` | Sent after every change, personalised per player: `code`, `you`, `hostId`, `phase` (`lobby`, `playing` or `ended`), `settings`, `players` (name, online status, ready), `emoji` (the id → emoji map for this game) and `game`, the player's view: how long the opening countdown has left (`startsInMs`), centre card, their own card, everyone's scores and lockouts, and when the game ends the standings and a `summary` (start time, length, each player's match times and wrong taps, badges) |
-| `{ type: "event", kind, playerId, symbol }` | What a tap did: `correct`, `wrong`, `lockedOut` or `forfeit` go to everyone; `tooLate` and `ignored` only to the tapper. Used for feedback such as "Ana got it". |
+| `{ type: "state", … }` | Sent after every change, personalised per player: `code`, `you`, `hostId`, `phase` (`lobby`, `playing` or `ended`), `settings`, `players` (name, online status, ready), `emoji` (the id → emoji map for this game) and `game`, the player's view: how long the opening countdown has left (`startsInMs`), centre card, their own card, everyone's scores, lockouts and current streaks, how far through the game they are (`progress`, 0 to 1), and when the game ends the standings and a `summary` (start time, length, each player's match times and wrong taps, badges) |
+| `{ type: "event", kind, playerId, symbol }` | What a tap did: `correct`, `wrong`, `lockedOut` or `forfeit` go to everyone; `tooLate` and `ignored` only to the tapper. Used for feedback such as the +1 for your win and "+1 for Ana" for everyone else. |
 | `{ type: "error", message }` | A request that was refused, such as a non-host pressing start |
 
 ## Project layout
@@ -192,7 +196,7 @@ src/
     app.js                entry point: solo game, home screen and best scores
     friends.js            multiplayer screens and the WebSocket connection
     cards.js              draws cards (symbol layout, tap handling)
-    ui.js                 small helpers: screens, toasts, storage, segmented pickers
+    ui.js                 small helpers: screens, toasts, card flights, the countdown, storage, segmented pickers
     shared/               pure game logic, used by the phones AND the server
       generator.js        DeckGenerator: builds decks (projective plane); MAX_CARDS; difficulty LEVELS
       checker.js          SetChecker: the four deck checks
@@ -275,4 +279,4 @@ The current deployment is at https://dobble.dobble.workers.dev. The deployed app
 - **Fonts.** The app loads Fredoka and Nunito from Google Fonts. Without a connection to Google it falls back to the system's rounded font.
 
 <!-- readme-synced: see AGENTS.md "Keeping the README current". Updated by the update-readme skill. -->
-<!-- readme-synced-commit: 7aa9e33 -->
+<!-- readme-synced-commit: d8a3fee -->

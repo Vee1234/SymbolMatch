@@ -187,19 +187,34 @@
   <main id="roomPlay" class="screen play" hidden>
     <header class="topbar hud">
       <button type="button" class="quit" id="roomQuit" aria-label="Leave game">✕</button>
-      <div class="stat"><span class="label" id="roomStatLabel">Centre pile</span><span class="value" id="roomStat">0</span></div>
-      <div class="stat"><span class="label" id="roomScoreLabel">Won</span><span class="value" id="roomScore">0</span></div>
+      <!-- How far through the game: fills blue to pink as the centre pile (or your hand) runs down. -->
+      <div class="progress-stat">
+        <span class="progress-head"><span class="label" id="roomStatLabel">Centre pile</span><span class="progress-count" id="roomStat"></span></span>
+        <span class="progress" aria-hidden="true"><span class="progress-fill" id="roomProgress"></span></span>
+      </div>
       <div class="stat"><span class="label">Mistakes</span><span class="pips" id="roomMistakes"></span></div>
     </header>
-    <div class="stage">
-      <ul class="opponents" id="opponents" aria-label="Other players"></ul>
-      <section class="table" id="roomTable">
-        <p class="pile-label">Centre card</p>
+    <section class="table" id="roomTable">
+      <!-- The other players sit round the centre card, like a real table; you're at the bottom. -->
+      <div class="round">
         <div class="card" id="roomCentre"></div>
+        <ul class="seats" id="opponents" aria-label="Other players"></ul>
+        <!-- In the gap between the top bar and the centre card, so it never covers a card. -->
+        <div class="win-toast" id="winToast" role="status" aria-live="polite" hidden>
+          <span class="pain"><span id="winToastEmoji"></span></span><span id="winToastText"></span>
+        </div>
+      </div>
+      <div class="pile">
         <div class="card mine" id="roomYours"></div>
-        <p class="pile-label" id="roomYoursLabel">Your card</p>
-      </section>
-    </div>
+        <!-- Your score, in the corner just outside your card, with your streak and the +1 for a win. -->
+        <div class="my-score">
+          <p class="score-circle" id="roomScoreBadge"><span id="roomScore">0</span><span class="score-label" id="roomScoreLabel">Won</span></p>
+          <p class="my-streak" id="myStreak" hidden></p>
+          <span class="plus-one" id="plusOne" aria-hidden="true" hidden>+1</span>
+        </div>
+      </div>
+      <p class="pile-label" id="roomYoursLabel">Your card</p>
+    </section>
   </main>
 
   <main id="roomResults" class="screen page results" hidden>

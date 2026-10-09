@@ -4,9 +4,9 @@
 
 import { LEVELS, levelName } from "./shared/generator.js";
 import { WRONG_TAPS_ALLOWED_PER_GAME } from "./shared/game.js";
-import { MULTIPLAYER_MODES, MIN_PLAYERS, readiness } from "./shared/multiplayer.js";
+import { MULTIPLAYER_MODES, MIN_PLAYERS, STREAK_MIN, readiness } from "./shared/multiplayer.js";
 import { verdictFor } from "./shared/verdicts.js";
-import { $, show, store, toast, segmented, renderPips, formatTime, buzz, slideCard, runCountdown, stopCountdown, countdownRunning } from "./ui.js";
+import { $, show, store, toast, segmented, renderPips, formatTime, buzz, slideCard, flyCard, popOnce, runCountdown, stopCountdown, countdownRunning } from "./ui.js";
 import { renderCard, replayAnimation, onSymbolTap, clearLayouts } from "./cards.js";
 
 const MODE_INFO = {
@@ -19,6 +19,8 @@ const MODE_INFO = {
     hint: "The cards are dealt out. Spot the match to put your card on the centre. First to get rid of all their cards wins.",
   },
 };
+// Shown to everyone else when someone wins a card, taking turns so it's never the same twice in a row.
+const PAIN_EMOJI = ["💔", "😰", "😖", "😩", "🫠", "💥", "🥀", "😵‍💫"];
 const ROOM_CODE = /^[A-HJ-KM-NP-Z2-9]{5}$/;
 const PING_EVERY_MS = 25_000;
 const LEAVE_CONFIRM_MS = 3_000;
@@ -43,6 +45,8 @@ let leaveArmedUntil = 0;
 let levelForNewRoom = null; // symbols per card chosen on the home screen, set once the room exists
 let codeToJoin = ""; // set when the name screen was opened by an invite link or a typed code
 let slideOnNext = null; // "won" or "played" after your correct tap, until the cards update
+let otherWinner = null; // another player's id after they won the centre card, until the cards update
+let painIndex = 0;
 
 const nameOf = id => state?.players.find(p => p.id === id)?.name ?? "Someone";
 const savedName = () => (store.get("playerName") ?? "").trim();
@@ -324,16 +328,23 @@ function renderPlay() {
   const tower = game.mode === MULTIPLAYER_MODES.tower;
   const centreChanged = shownCentreSeq !== game.centreSeq;
 
-  // After your correct tap the cards about to change: the won card slides onto your pile
-  // (Pick one up), or your card goes down on the centre (Put one down).
-  if (slideOnNext && centreChanged && shownCentreSeq !== null) {
+  // When someone wins the centre card, every phone shows it. Your win: the won card slides
+  // onto your pile (Pick one up), or your card goes down on the centre (Put one down), and
+  // a +1 pops up. Someone else's: the centre card flies off to their seat (Pick one up), or
+  // their card flies in from their seat (Put one down), and a pain emoji says +1 for them.
+  const youWon = slideOnNext && centreChanged && shownCentreSeq !== null;
+  const winnerSeat = otherWinner && centreChanged && shownCentreSeq !== null ? seatOf(otherWinner) : null;
+  if (youWon) {
     if (tower) slideCard($("roomCentre"), $("roomYours"));
     else slideCard($("roomYours"), $("roomCentre"));
+  } else if (winnerSeat && tower) {
+    flyCard($("roomCentre"), $("roomCentre").getBoundingClientRect(), seatCircle(winnerSeat), { fadeOut: true, duration: 420 });
   }
-  slideOnNext = null;
 
   if (centreChanged) {
-    renderCard($("roomCentre"), game.centre, state.emoji, shownCentreSeq === null ? null : "deal");
+    const flyingIn = winnerSeat && !tower;
+    renderCard($("roomCentre"), game.centre, state.emoji, shownCentreSeq === null || flyingIn ? null : "deal");
+    if (flyingIn) flyCard($("roomCentre"), seatCircle(winnerSeat), $("roomCentre").getBoundingClientRect(), { hideCard: true, duration: 420 });
     shownCentreSeq = game.centreSeq;
   }
   const yoursKey = JSON.stringify(game.yourCard);
@@ -351,20 +362,31 @@ function renderPlay() {
 
   $("roomTable").classList.toggle("locked-out", you.lockedOut);
   $("roomYoursLabel").textContent = you.forfeited ? "Out" : you.lockedOut ? "Locked out. Wait for the next card" : "Your card";
-  $("roomStatLabel").textContent = tower ? "Centre pile" : "Cards left";
-  $("roomStat").textContent = tower ? game.centrePileLeft : you.cardsLeft;
+  $("roomStatLabel").textContent = tower ? "Centre pile" : "Your cards";
+  $("roomStat").textContent = `${tower ? game.centrePileLeft : you.cardsLeft} left`;
+  $("roomProgress").style.clipPath = `inset(0 ${(100 - 100 * (game.progress ?? 0)).toFixed(1)}% 0 0 round 999px)`;
   $("roomScoreLabel").textContent = tower ? "Won" : "Played";
   $("roomScore").textContent = you.won;
+  $("roomScoreBadge").setAttribute("aria-label", `You: ${you.won} ${tower ? "won" : "played"}`);
+  const onStreak = (you.streak ?? 0) >= STREAK_MIN;
+  $("myStreak").hidden = !onStreak;
+  if (onStreak) {
+    const flame = document.createElement("span");
+    flame.className = "flame";
+    flame.textContent = "🔥";
+    $("myStreak").replaceChildren(flame, String(you.streak));
+    $("myStreak").setAttribute("aria-label", `${you.streak} in a row`);
+  }
   renderPips($("roomMistakes"), you.wrongTotal, WRONG_TAPS_ALLOWED_PER_GAME);
 
-  const online = new Map(state.players.map(p => [p.id, p.connected]));
-  $("opponents").replaceChildren(...game.players.filter(p => p.id !== playerId).map(p => {
-    const li = document.createElement("li");
-    const status = p.forfeited ? "out" : !online.get(p.id) ? "offline" : p.lockedOut ? "🔒" : "";
-    li.className = p.forfeited || !online.get(p.id) ? "dim" : "";
-    li.append(circle(p.id, initialOf(p.id)), `${nameOf(p.id)} · ${tower ? p.won : p.cardsLeft}${status ? ` ${status}` : ""}`);
-    return li;
-  }));
+  renderSeats(game);
+  if (youWon) {
+    popOnce($("plusOne"), "pop");
+    replayAnimation($("roomScoreBadge"), "scored");
+  }
+  if (winnerSeat) celebrate(winnerSeat, otherWinner);
+  slideOnNext = null;
+  otherWinner = null;
 
   // The opening countdown runs for however long the room says is left, so a phone that
   // reconnects partway through joins in at the right number.
@@ -380,6 +402,81 @@ function renderPlay() {
     });
   }
   show("roomPlay");
+}
+
+// The other players sit round the centre card, so cards can fly to and from them. They're
+// seated in mirrored pairs, left then right, from just below the top of the card downwards,
+// so the space straight above the card stays free for the toast. Seats are kept between
+// updates (only their text changes) so a seat's animation isn't cut short by the next one.
+const LEFT_SEATS = [145, 166.4, 187.8, 209.2]; // degrees: 0 is to the right of the card, 90 straight above it
+const SEAT_GAP = "26px"; // from the card's edge to the middle of a player's circle
+
+function renderSeats(game) {
+  const list = $("opponents");
+  const others = game.players.filter(p => p.id !== playerId);
+  const online = new Map(state.players.map(p => [p.id, p.connected]));
+  // Moving a seat in the page would restart its animation, so only add and remove seats.
+  for (const li of [...list.children]) {
+    if (!others.some(p => p.id === li.dataset.id)) li.remove();
+  }
+  others.forEach((p, i) => {
+    let li = seatOf(p.id);
+    if (!li) {
+      li = document.createElement("li");
+      li.className = "seat";
+      li.dataset.id = p.id;
+      const name = document.createElement("span");
+      name.className = "seat-name";
+      const who = document.createElement("span");
+      who.className = "who";
+      const flame = document.createElement("span");
+      flame.className = "flame";
+      flame.textContent = "🔥";
+      name.append(who, flame);
+      const count = document.createElement("span");
+      count.className = "seat-count";
+      const avatar = circle(p.id, initialOf(p.id));
+      avatar.append(count);
+      li.append(name, avatar);
+      list.append(li);
+    }
+    const left = LEFT_SEATS[i >> 1];
+    const angle = (i % 2 === 0 ? left : 180 - left) * Math.PI / 180;
+    li.style.left = `calc(50% + ${Math.cos(angle).toFixed(3)} * (50% + ${SEAT_GAP}))`;
+    li.style.top = `calc(50% - ${Math.sin(angle).toFixed(3)} * (50% + ${SEAT_GAP}))`;
+
+    const status = p.forfeited ? "out" : !online.get(p.id) ? "offline" : p.lockedOut ? "locked out" : "";
+    const score = isTower(game) ? p.won : p.cardsLeft;
+    li.classList.toggle("dim", p.forfeited || !online.get(p.id));
+    const onStreak = (p.streak ?? 0) >= STREAK_MIN;
+    li.querySelector(".who").textContent = `${p.lockedOut && !p.forfeited ? "🔒 " : ""}${nameOf(p.id)}`;
+    li.querySelector(".flame").hidden = !onStreak;
+    li.querySelector(".seat-count").textContent = score;
+    li.setAttribute("aria-label", `${nameOf(p.id)}: ${score} ${isTower(game) ? "won" : "left"}${onStreak ? `, ${p.streak} in a row` : ""}${status ? `, ${status}` : ""}`);
+  });
+}
+
+const isTower = game => game.mode === MULTIPLAYER_MODES.tower;
+const seatOf = id => [...$("opponents").children].find(li => li.dataset.id === id) ?? null;
+const seatCircle = seat => seat.querySelector(".initial").getBoundingClientRect();
+
+// Someone else won the centre card: their seat lights up with a +1, and everyone else gets
+// a pain emoji saying so.
+function celebrate(seat, id) {
+  seat.classList.remove("scored");
+  void seat.offsetWidth; // restart the CSS animation
+  seat.classList.add("scored");
+  const plus = document.createElement("span");
+  plus.className = "seat-plus";
+  plus.setAttribute("aria-hidden", "true");
+  plus.textContent = "+1";
+  seat.append(plus);
+  setTimeout(() => plus.remove(), 1300);
+
+  $("winToastEmoji").textContent = PAIN_EMOJI[painIndex];
+  painIndex = (painIndex + 1) % PAIN_EMOJI.length;
+  $("winToastText").textContent = `+1 for ${nameOf(id)}`;
+  popOnce($("winToast"), "pop");
 }
 
 function renderResults() {
@@ -495,7 +592,7 @@ function handleEvent({ kind, playerId: who, symbol }) {
       toast("Too slow, someone got there first");
     }
   } else if (kind === "correct") {
-    toast(`${nameOf(who)} got it`);
+    otherWinner = who;
   } else if (kind === "forfeit") {
     toast(`${nameOf(who)} is out`);
   }
