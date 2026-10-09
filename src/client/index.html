@@ -132,6 +132,38 @@
     </div>
   </main>
 
+  <!-- ========== Tutorial ========== -->
+
+  <!-- A game played for you and explained step by step, then three matches to find yourself. -->
+  <main id="tutorialScreen" class="screen play tutorial-screen" hidden>
+    <header class="topbar">
+      <div class="topbar-title">
+        <button type="button" class="logo-link" data-home aria-label="Symbolic: back to the home screen"><svg class="logo" aria-hidden="true"><use href="#logoMark"/></svg></button>
+        <h1 class="page-name">Tutorial</h1>
+      </div>
+      <button type="button" class="bar-button" id="tutorialSkip">Skip</button>
+    </header>
+
+    <section class="table" id="tutorialTable">
+      <div class="card" id="tutCentre" aria-label="Centre card"></div>
+      <div class="pile">
+        <div class="card mine" id="tutYours" aria-label="Your card"></div>
+        <span class="plus-one tutorial-plus" id="tutPlus" aria-hidden="true" hidden>+1</span>
+      </div>
+    </section>
+
+    <section class="coach" aria-label="Tutorial">
+      <p class="coach-step" id="coachStep"></p>
+      <p class="coach-text" id="coachText" aria-live="polite"></p>
+      <p class="practice-dots" id="practiceDots" role="img" hidden></p>
+      <button type="button" class="wide blue" id="coachNext">Next</button>
+      <div class="actions two" id="coachEnd" hidden>
+        <button type="button" class="wide white" id="tutorialAgain">Replay tutorial</button>
+        <button type="button" class="wide blue" id="tutorialMenu">Back to menu</button>
+      </div>
+    </section>
+  </main>
+
   <!-- ========== Play with friends ========== -->
 
   <main id="friends" class="screen page" hidden>

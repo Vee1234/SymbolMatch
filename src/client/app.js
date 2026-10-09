@@ -4,6 +4,7 @@ import { pickEmoji } from "./shared/symbols.js";
 import { $, show, store, toast, formatTime, segmented, renderPips, buzz, slideCard, runCountdown, stopCountdown } from "./ui.js";
 import { renderCard, replayAnimation, onSymbolTap, clearLayouts } from "./cards.js";
 import { initFriends, createRoomAtLevel, joinWithCode, inRoom, leaveRoom } from "./friends.js";
+import { initTutorial, startTutorial, stopTutorial } from "./tutorial.js";
 
 const MODE_INFO = {
   [MODES.clock]: { name: "Beat the clock", desc: "As many matches as you can in 60 seconds." },
@@ -224,6 +225,7 @@ function finish() {
 function goHome() {
   cancelAnimationFrame(frame);
   stopCountdown();
+  stopTutorial();
   game = null;
   picking = null;
   $("cardPick").hidden = true;
@@ -246,8 +248,7 @@ $("homeJoin").addEventListener("submit", event => {
 for (const button of document.querySelectorAll("[data-home]")) {
   button.addEventListener("click", () => (inRoom() ? leaveRoom() : goHome()));
 }
-// The tutorial is planned but not built yet.
-$("tutorial").addEventListener("click", () => toast("The tutorial is coming soon"));
+$("tutorial").addEventListener("click", startTutorial);
 // Safari on iPhone only shows :active (the press animation) on pages that listen for touches.
 document.addEventListener("touchstart", () => {}, { passive: true });
 $("quit").addEventListener("click", goHome);
@@ -255,3 +256,4 @@ $("again").addEventListener("click", () => startGame(mode));
 $("toHome").addEventListener("click", goHome);
 
 initFriends({ goHome });
+initTutorial({ goHome });

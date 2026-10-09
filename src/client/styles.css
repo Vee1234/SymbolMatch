@@ -642,6 +642,56 @@ button:active:not(:disabled):not(.symbol) { scale: 1.06; transition-duration: .0
 .countdown-players li { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; }
 .countdown-players .initial { width: 52px; height: 52px; box-shadow: 3px 3px 0 #000; font-size: 22px; }
 
+/* ---------- tutorial ---------- */
+/* The cards on top, and the explanation in a panel underneath them, never over them. */
+#tutorialScreen { --card-size: min(64vw, calc((100svh - var(--bar) - 260px - env(safe-area-inset-bottom)) / 2), 320px); }
+.tutorial-screen .topbar { margin-bottom: 0; }
+.tutorial-screen .table { gap: 6px; padding: 6px 0; }
+.coach {
+  width: min(100%, 34rem);
+  margin: 0 auto 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border: 3px solid #000;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 4px 4px 0 #000;
+}
+.coach-step { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--text-soft); }
+.coach-text { margin: 0; min-height: 3.9em; font-size: 17px; font-weight: 700; line-height: 1.3; }
+.coach .actions { margin-top: 0; }
+.practice-dots { display: flex; gap: 8px; margin: 0; }
+.practice-dots span { width: 18px; height: 18px; box-sizing: border-box; border: 2.5px solid #000; border-radius: 50%; background: #fff; }
+.practice-dots span.found { background: var(--pink-deep); }
+/* The +1 when a card is won, just outside your card's top right. */
+.tutorial-plus { left: auto; right: -8px; top: -4px; }
+
+/* Pointing things out: a dashed ring round a card, and a glow round a symbol. */
+.card.spotlight::after {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border: 3px dashed var(--blue-deep);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: spotlight 1.4s ease-in-out infinite;
+}
+.symbol.clue { background: rgba(127, 191, 230, .45); box-shadow: 0 0 0 3px var(--blue-deep); animation: clue 1.2s ease-in-out infinite; }
+.symbol.clue.wrong { animation: wrong .45s ease-out; }
+/* The finger that taps for you while the tutorial plays a move. */
+.tap-hand {
+  position: fixed;
+  z-index: 30;
+  font-size: 44px;
+  line-height: 1;
+  pointer-events: none;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  animation: tap-hand .65s ease-out forwards;
+}
+
 /* ---------- friends results ---------- */
 .results-head { display: flex; flex-direction: column; gap: 4px; }
 .results-head h2 { margin: 0; font: 700 38px var(--display); }
@@ -701,6 +751,14 @@ button:active:not(:disabled):not(.symbol) { scale: 1.06; transition-duration: .0
   78% { scale: 1; opacity: 1; }
   100% { scale: 0; opacity: 0; transform: none; }
 }
+@keyframes spotlight { 50% { scale: 1.04; opacity: .6; } }
+@keyframes clue { 50% { box-shadow: 0 0 0 7px rgba(47, 111, 163, .35); } }
+@keyframes tap-hand {
+  0% { transform: translate(36px, 56px); opacity: 0; }
+  55% { transform: none; opacity: 1; }
+  75% { transform: scale(.82); }
+  100% { transform: none; opacity: 1; }
+}
 @keyframes score-pop { 30% { scale: 1.12; background: var(--pink); box-shadow: 0 0 0 5px var(--pink-deep), 4px 4px 0 #000; } }
 @keyframes plus-pop {
   0% { scale: .2; opacity: 0; }
@@ -727,7 +785,8 @@ button:active:not(:disabled):not(.symbol) { scale: 1.06; transition-duration: .0
   button { transition: none; }
   button:active, button:hover { scale: none; }
   .card.deal, .card.locked, .symbol.wrong, .symbol.right, .pips.last-chance .pip:not(.used), .orbit, .count,
-  .win-toast.pop, .plus-one.pop, .seat.scored .initial, .seat-plus, .score-circle.scored { animation: none; }
+  .win-toast.pop, .plus-one.pop, .seat.scored .initial, .seat-plus, .score-circle.scored,
+  .card.spotlight::after, .symbol.clue, .tap-hand { animation: none; }
   .progress-fill { transition: none; }
   .countdown { transition: none; }
 }
