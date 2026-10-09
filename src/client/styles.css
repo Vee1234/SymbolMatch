@@ -429,7 +429,7 @@ button:active:not(:disabled):not(.symbol) { scale: 1.06; transition-duration: .0
 
 /* The other players sit round the centre card, like round a table, with you at the bottom.
    friends.js places each seat on an arc over the card. */
-#roomPlay { --card-size: min(70vw, calc((100svh - var(--bar) - 160px - env(safe-area-inset-bottom)) / 2), 380px); }
+#roomPlay { --card-size: min(62vw, calc((100svh - var(--bar) - 160px - env(safe-area-inset-bottom)) / 2), 380px); }
 /* The top bar: leave, how far through the game, mistakes. */
 #roomPlay .hud { grid-template-columns: 44px minmax(0, 1.5fr) minmax(0, 1fr); column-gap: 8px; }
 .progress-stat { display: flex; flex-direction: column; gap: 6px; padding: 0 6px; }
@@ -449,7 +449,7 @@ button:active:not(:disabled):not(.symbol) { scale: 1.06; transition-duration: .0
 .seat { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 3px; transform: translate(-50%, calc(-100% + 20px)); }
 .seat.dim { opacity: .5; }
 .seat-name { display: flex; align-items: center; gap: 2px; padding: 1px 7px; border-radius: 999px; background: #fff; white-space: nowrap; font-size: 12px; font-weight: 800; }
-.seat-name .who { max-width: 44px; overflow: hidden; text-overflow: ellipsis; }
+.seat-name .who { max-width: 38px; overflow: hidden; text-overflow: ellipsis; }
 .flame { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-size: 13px; line-height: 1; }
 .seat .initial { position: relative; width: 40px; height: 40px; box-shadow: 2px 2px 0 #000; font-size: 17px; }
 .seat-count {
