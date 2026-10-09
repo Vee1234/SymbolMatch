@@ -24,6 +24,9 @@ export { COUNTDOWN_MS };
 export const MULTIPLAYER_MODES = { tower: "tower", well: "well" };
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;
+// Winning this many centre cards in a row is a streak: phones show a 🔥 and it earns the
+// Hot streak badge.
+export const STREAK_MIN = 3;
 
 // Before a game starts, every connected player has to say they're ready; the host can't
 // start until they all have. players: the room's list, each with `connected` and `ready`.
@@ -232,7 +235,7 @@ export const BADGES = {
   quickest: { emoji: "⚡", name: "Quickest draw", description: "The single fastest match of the game" },
   fastestAverage: { emoji: "🏎️", name: "Consistently quick", description: "The fastest average match time (at least 3 matches)" },
   sharpshooter: { emoji: "🎯", name: "Sharpshooter", description: "Made matches without a single wrong tap" },
-  hotStreak: { emoji: "🔥", name: "Hot streak", description: "Won the most centre cards in a row (at least 3)" },
+  hotStreak: { emoji: "🔥", name: "Hot streak", description: `Won the most centre cards in a row (at least ${STREAK_MIN})` },
   butterfingers: { emoji: "🧈", name: "Butterfingers", description: "The most wrong taps (at least 3)" },
 };
 
@@ -247,7 +250,7 @@ export function awardBadges(stats) {
     quickest: best(s => s.fastestMs !== null, s => s.fastestMs, Math.min),
     fastestAverage: best(s => s.matches >= 3, s => s.averageMs, Math.min),
     sharpshooter: stats.filter(s => s.matches > 0 && s.wrongTotal === 0).map(s => s.id),
-    hotStreak: best(s => s.bestStreak >= 3, s => s.bestStreak, Math.max),
+    hotStreak: best(s => s.bestStreak >= STREAK_MIN, s => s.bestStreak, Math.max),
     butterfingers: best(s => s.wrongTotal >= 3, s => s.wrongTotal, Math.max),
   };
   return Object.entries(awards)
@@ -267,6 +270,23 @@ export function gameSummary(game) {
   };
 }
 
+// How far through the game a player is, from 0 to 1. Pick one up: how much of the centre
+// pile has been turned over. Put one down: how many of your own cards you've put down
+// (for someone watching without cards, the centre pile's share is used either way).
+export function progressFor(game, id) {
+  const p = game.players[id];
+  if (game.mode === MULTIPLAYER_MODES.well && p) {
+    const dealt = p.won + p.pile.length;
+    return dealt ? p.won / dealt : 1;
+  }
+  if (game.status === "ended") return 1;
+  return game.centreSeq / (game.centreSeq + game.centrePile.length + 1);
+}
+
+// The run of centre cards a player has won in a row right now. It ends as soon as anyone
+// else wins one.
+export const currentStreak = (game, id) => (game.lastWinner === id ? game.players[id].streak ?? 0 : 0);
+
 // What one player is allowed to see: their own top card, the centre card, and a summary of
 // everyone else (never other players' cards).
 export function viewFor(game, id, now = Date.now()) {
@@ -279,6 +299,7 @@ export function viewFor(game, id, now = Date.now()) {
       wrongTotal: p.wrongTotal,
       lockedOut: isLockedOut(game, pid),
       forfeited: p.forfeited,
+      streak: currentStreak(game, pid),
     };
   };
   const me = game.players[id];
@@ -291,6 +312,7 @@ export function viewFor(game, id, now = Date.now()) {
     centre: game.centre,
     centreSeq: game.centreSeq,
     centrePileLeft: game.centrePile.length,
+    progress: progressFor(game, id),
     yourCard: me && !me.forfeited && game.status === "playing" ? topCard(me) : null,
     you: me ? summary(id) : null,
     players: game.order.map(summary),

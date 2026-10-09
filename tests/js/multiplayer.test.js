@@ -5,6 +5,7 @@ import { DeckGenerator, deckSizeFor } from "../../src/client/shared/generator.js
 import { sharedSymbol } from "../../src/client/shared/game.js";
 import {
   createGame, applyTap, standings, viewFor, isLockedOut, playerStats, awardBadges, gameSummary, readiness, forfeitPlayer, COUNTDOWN_MS,
+  progressFor, STREAK_MIN,
 } from "../../src/client/shared/multiplayer.js";
 import { verdictFor, verdictKind, VERDICTS } from "../../src/client/shared/verdicts.js";
 
@@ -256,4 +257,31 @@ test("taps during the opening countdown don't count, and times start when it end
   assert.equal(viewFor(game, "a", start + 50).startsInMs, 0);
   assert.equal(applyTap(game, "a", right(game, "a"), game.centreSeq, start + 700), "correct");
   assert.deepEqual(game.players.a.matchTimes, [700]);
+});
+
+test("everyone sees each player's current streak, which ends when someone else wins", () => {
+  const game = createGame(makeDeck(7), "tower", ["a", "b"]);
+  for (let i = 0; i < STREAK_MIN; i++) tap(game, "a", right(game, "a"));
+  const streakOf = (view, id) => view.players.find(p => p.id === id).streak;
+  assert.equal(streakOf(viewFor(game, "b"), "a"), STREAK_MIN);
+  assert.equal(viewFor(game, "a").you.streak, STREAK_MIN);
+  tap(game, "b", right(game, "b"));
+  assert.equal(streakOf(viewFor(game, "b"), "a"), 0);
+  assert.equal(streakOf(viewFor(game, "a"), "b"), 1);
+});
+
+test("progress runs from 0 to 1 through the centre pile, or through your own cards in well", () => {
+  const tower = createGame(makeDeck(2), "tower", ["a", "b"]);
+  assert.equal(progressFor(tower, "a"), 0);
+  const total = tower.centrePile.length + 1;
+  tap(tower, "a", right(tower, "a"));
+  assert.equal(progressFor(tower, "b"), 1 / total);
+  assert.equal(viewFor(tower, "b").progress, 1 / total);
+
+  const well = createGame(makeDeck(2), "well", ["a", "b"]);
+  const dealt = well.players.a.pile.length;
+  assert.equal(progressFor(well, "a"), 0);
+  tap(well, "a", right(well, "a"));
+  assert.equal(progressFor(well, "a"), 1 / dealt);
+  assert.equal(progressFor(well, "b"), 0);
 });
