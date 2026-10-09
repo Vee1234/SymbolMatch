@@ -408,8 +408,11 @@ function renderPlay() {
 // seated in mirrored pairs, left then right, from just below the top of the card downwards,
 // so the space straight above the card stays free for the toast. Seats are kept between
 // updates (only their text changes) so a seat's animation isn't cut short by the next one.
-const LEFT_SEATS = [145, 166.4, 187.8, 209.2]; // degrees: 0 is to the right of the card, 90 straight above it
-const SEAT_GAP = "26px"; // from the card's edge to the middle of a player's circle
+const FIRST_SEAT = 145; // degrees: 0 is to the right of the card, 90 straight above it
+const LAST_SEAT = 205; // the lowest seat, still beside the centre card rather than yours
+const SEAT_STEP = 21.4; // degrees between seats down each side, opened up on small cards…
+const SEAT_SPACING = 66; // …so neighbouring seats (name above circle) stay at least this many px apart
+const SEAT_GAP = "42px"; // from the card's edge to the middle of a player's circle: far enough out that the card is clearly in the middle, not theirs
 
 function renderSeats(game) {
   const list = $("opponents");
@@ -419,6 +422,10 @@ function renderSeats(game) {
   for (const li of [...list.children]) {
     if (!others.some(p => p.id === li.dataset.id)) li.remove();
   }
+  const radius = $("roomCentre").offsetWidth / 2 + parseFloat(SEAT_GAP);
+  const perSide = Math.ceil(others.length / 2);
+  const roomy = Math.max(SEAT_STEP, radius > 0 ? SEAT_SPACING / radius * 180 / Math.PI : 0);
+  const step = perSide > 1 ? Math.min(roomy, (LAST_SEAT - FIRST_SEAT) / (perSide - 1)) : 0;
   others.forEach((p, i) => {
     let li = seatOf(p.id);
     if (!li) {
@@ -440,7 +447,7 @@ function renderSeats(game) {
       li.append(name, avatar);
       list.append(li);
     }
-    const left = LEFT_SEATS[i >> 1];
+    const left = FIRST_SEAT + step * (i >> 1);
     const angle = (i % 2 === 0 ? left : 180 - left) * Math.PI / 180;
     li.style.left = `calc(50% + ${Math.cos(angle).toFixed(3)} * (50% + ${SEAT_GAP}))`;
     li.style.top = `calc(50% - ${Math.sin(angle).toFixed(3)} * (50% + ${SEAT_GAP}))`;

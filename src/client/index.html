@@ -58,8 +58,15 @@
         </div>
       </form>
 
+      <p class="or">or</p>
+
       <!-- The settings live inside a big round card, like a symbol card. -->
-      <section class="symbol-card" aria-label="Start a game">
+      <section class="symbol-card" aria-label="Create a game">
+        <!-- The heading follows the curve of the card, just outside its white rim. -->
+        <svg class="arc-title" viewBox="0 0 100 100" aria-hidden="true">
+          <path id="createArc" d="M -7 50 A 57 57 0 0 1 107 50" fill="none"/>
+          <text><textPath href="#createArc" startOffset="50%">Create a game</textPath></text>
+        </svg>
         <div class="face" id="cardHome">
           <span class="dot dot-a" aria-hidden="true"></span>
           <span class="dot dot-b" aria-hidden="true"></span>
@@ -123,6 +130,38 @@
       <button type="button" class="wide blue" id="again">Play again</button>
       <button type="button" class="wide white" id="toHome">Home</button>
     </div>
+  </main>
+
+  <!-- ========== Tutorial ========== -->
+
+  <!-- A game played for you and explained step by step, then three matches to find yourself. -->
+  <main id="tutorialScreen" class="screen play tutorial-screen" hidden>
+    <header class="topbar">
+      <div class="topbar-title">
+        <button type="button" class="logo-link" data-home aria-label="Symbolic: back to the home screen"><svg class="logo" aria-hidden="true"><use href="#logoMark"/></svg></button>
+        <h1 class="page-name">Tutorial</h1>
+      </div>
+      <button type="button" class="bar-button" id="tutorialSkip">Skip</button>
+    </header>
+
+    <section class="table" id="tutorialTable">
+      <div class="card" id="tutCentre" aria-label="Centre card"></div>
+      <div class="pile">
+        <div class="card mine" id="tutYours" aria-label="Your card"></div>
+        <span class="plus-one tutorial-plus" id="tutPlus" aria-hidden="true" hidden>+1</span>
+      </div>
+    </section>
+
+    <section class="coach" aria-label="Tutorial">
+      <p class="coach-step" id="coachStep"></p>
+      <p class="coach-text" id="coachText" aria-live="polite"></p>
+      <p class="practice-dots" id="practiceDots" role="img" hidden></p>
+      <button type="button" class="wide blue" id="coachNext">Next</button>
+      <div class="actions two" id="coachEnd" hidden>
+        <button type="button" class="wide white" id="tutorialAgain">Replay tutorial</button>
+        <button type="button" class="wide blue" id="tutorialMenu">Back to menu</button>
+      </div>
+    </section>
   </main>
 
   <!-- ========== Play with friends ========== -->

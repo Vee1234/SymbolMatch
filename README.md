@@ -36,13 +36,15 @@ To try it on a phone on the same Wi-Fi, run `npx wrangler dev --ip 0.0.0.0` and 
 
 Players pick a level, which sets how many symbols each card has: Easy (6), Medium (8) or Hard (12). The levels are `LEVELS` in `shared/generator.js`. The deck generator and the room API also accept 3 or 4, but the app no longer offers them. The deck is capped at 57 cards, because the full deck for 12 symbols per card would have 133.
 
-The home screen has a white bar across the top with the logo on the left and a "New here? Play the tutorial" button on the right. Below it are the title with a one-line description of the game, a box for joining a game with a room code, and a big round card holding "Play with friends" and "Play a solo game" as outlined circles with a shadow, like the logo. Tapping either one turns the card over to choose a level; for solo play the card also has a toggle between the two solo modes. The tutorial isn't built yet: its button only says it's coming soon.
+The home screen has a white bar across the top with the logo on the left and a "New here? Play the tutorial" button on the right. Below it are the title with a one-line description of the game, a box for joining a game with a room code, then "or" and a "Create a game" heading that curves round the top of a big round card holding "Play with friends" and "Play a solo game" as outlined circles with a shadow, like the logo. Tapping either one turns the card over to choose a level; for solo play the card also has a toggle between the two solo modes.
+
+**The tutorial** plays a short game for you on Easy cards, explaining the rules one step at a time: tap **Next** to go on. It spotlights the centre card and your card, makes the shared symbol glow, then shows a finger tapping the match (the card slides onto your pile with a +1) and a wrong tap (the symbol shakes). Then it's your turn to find the match 3 times. After 2 wrong taps on one card, the answer starts to glow. At the end you can replay the tutorial or go back to the menu. **Skip** in the top bar leaves at any point.
 
 Every screen shares one look: a light blue background, black text, white cards with a blue ring (the centre card) or pink ring (yours), and a white bar across the top. Outside the game screens that bar shows the logo, which goes back to the home screen (leaving any room), next to the page name. Wide buttons have a black outline and a hard shadow, and buttons grow slightly when pressed.
 
 On every screen the centre card is on top and the player's own card is below. Tapping the one symbol the two cards share scores; a tap counts as soon as the finger touches the screen. When you win a card it slides down onto your pile (in Put one down, your card slides up onto the centre), and phones that can vibrate give a short buzz. Safari on iPhone doesn't allow vibration, so iPhones don't buzz.
 
-In a multiplayer game everyone plays for the same centre card. The other players sit round it like round a table, each shown as a circle with their name above and their score in a badge; you're at the bottom. They're seated in mirrored pairs down the left and right sides, starting just below the top of the card, so the space straight above the card is always free. Your own score is a big circle in the corner just outside your card, and the top bar shows the centre pile as a progress bar that fills from blue to pink as the game goes on (in Put one down, it fills as your own cards run out). When you win the centre card it slides onto your pile and a +1 pops up by your score. When someone else wins it, the centre card flies off to their seat (in Put one down, their card flies in from their seat), their seat flashes +1, and everyone else sees a pain emoji with "+1 for Sam" in the space between the top bar and the centre card. It grows, shakes from side to side and shrinks away without covering either card, so every phone sees the next centre card at the same moment. The emoji take turns (💔 😰 😖 😩 🫠 💥 🥀 😵‍💫), so the same one never shows twice in a row.
+In a multiplayer game everyone plays for the same centre card. The other players sit round it like round a table, each shown as a circle with their name above and their score in a badge; you're at the bottom. They're seated a little way out from the card, in mirrored pairs down the left and right sides, starting just below its top and never lower than its bottom half, spaced so they don't overlap even on small screens. The space straight above the card is always free. Your own score is a big circle in the corner just outside your card, and the top bar shows the centre pile as a progress bar that fills from blue to pink as the game goes on (in Put one down, it fills as your own cards run out). When you win the centre card it slides onto your pile and a +1 pops up by your score. When someone else wins it, the centre card flies off to their seat (in Put one down, their card flies in from their seat), their seat flashes +1, and everyone else sees a pain emoji with "+1 for Sam" in the space between the top bar and the centre card. It grows, shakes from side to side and shrinks away without covering either card, so every phone sees the next centre card at the same moment. The emoji take turns (💔 😰 😖 😩 🫠 💥 🥀 😵‍💫), so the same one never shows twice in a row.
 
 Winning `STREAK_MIN` (3) centre cards in a row is a streak, until anyone else wins one. Your streak shows as 🔥 and the count on your score; other players on a streak get a 🔥 by their name.
 
@@ -94,7 +96,7 @@ A match time is how long the centre card had been showing when the player spotte
 ```mermaid
 flowchart LR
   subgraph phone["Each player's phone (browser)"]
-    UI["Screens<br/>app.js · friends.js"]
+    UI["Screens<br/>app.js · friends.js · tutorial.js"]
     SharedC["shared/ rules"]
   end
   subgraph cf["Cloudflare"]
@@ -189,12 +191,13 @@ Invite links have the form `https://<host>/?room=CODE`.
 ```
 src/
   client/                 served to phones as-is (no build step)
-    index.html            every screen: home, solo game, results, friends, lobby, room game, room results
+    index.html            every screen: home, solo game, results, tutorial, friends, lobby, room game, room results
     styles.css
     icon.svg              the logo, used as the browser tab icon
     apple-touch-icon.png  the 180px icon iPhones use when the game is added to the home screen
     app.js                entry point: solo game, home screen and best scores
     friends.js            multiplayer screens and the WebSocket connection
+    tutorial.js           the tutorial: a game played and explained for you, then 3 matches to find
     cards.js              draws cards (symbol layout, tap handling)
     ui.js                 small helpers: screens, toasts, card flights, the countdown, storage, segmented pickers
     shared/               pure game logic, used by the phones AND the server
@@ -279,4 +282,4 @@ The current deployment is at https://dobble.dobble.workers.dev. The deployed app
 - **Fonts.** The app loads Fredoka and Nunito from Google Fonts. Without a connection to Google it falls back to the system's rounded font.
 
 <!-- readme-synced: see AGENTS.md "Keeping the README current". Updated by the update-readme skill. -->
-<!-- readme-synced-commit: d8a3fee -->
+<!-- readme-synced-commit: 6aaf3fa -->
